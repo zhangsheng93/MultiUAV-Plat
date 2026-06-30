@@ -2,6 +2,8 @@
 
 **An LLM-Oriented Platform, Benchmark and Framework for Multi-UAV Collaborative Task Planning**
 
+🌐 Language: **English** | [中文](README_CN.md)
+
 [📄 Paper](https://arxiv.org/) | [🌐 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
 
 MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark for studying LLM agents that plan, act, observe, and verify multi-UAV missions through restricted APIs and partial local perception.
@@ -92,23 +94,40 @@ python main.py
 
 The controller connects to the local server and provides session management, scenario editing, import/export, and monitoring tools.
 
-### 3. Start the Agent4Drone service
+### 3. Run Agent4Drone
 
-Agent4Drone calls an external LLM backend, so you need to provide your own model-provider API key before starting the service. You can either edit `llm_settings.json` locally or export an environment variable such as `OPENAI_API_KEY` or `LLM_API_KEY`.
+Agent4Drone calls an external LLM backend, so you need to provide your own model-provider API key before starting it. You can either edit `llm_settings.json` locally or export an environment variable such as `OPENAI_API_KEY` or `LLM_API_KEY`.
 
 ```bash
 cd agent4drone
 cp llm_settings.example.json llm_settings.json
 # Add your own LLM API key in llm_settings.json, or export OPENAI_API_KEY / LLM_API_KEY.
+```
+
+Agent4Drone can be used in two modes:
+
+**Option A: interactive agent UI**
+
+Use this mode when you want to run Agent4Drone through its local interactive interface.
+
+```bash
+python main.py
+```
+
+**Option B: background agent API service**
+
+Use this mode when another application, script, or controller should call Agent4Drone through HTTP.
+
+```bash
 python agent_api_service.py
 ```
 
-Default endpoints:
+Default service endpoints:
 
 - Agent API: `http://localhost:18000`
 - Agent docs: `http://localhost:18000/docs`
 
-Agent commands can be submitted synchronously or through the asynchronous job API. See `agent4drone/README_SERVICE.md` and `agent4drone/README_API.md` for details.
+In service mode, agent commands can be submitted synchronously or through the asynchronous job API. See `agent4drone/README_SERVICE.md` and `agent4drone/README_API.md` for details.
 
 ## 📦 Benchmark
 
@@ -138,25 +157,6 @@ The following full-benchmark results are computed on 75 sessions, 1500 tasks, an
 | ReAct | doubao-2-pro | 459 / 1500 | 486 / 1500 | 30.60% | 47.91% | 43.15% | 32.40% |
 
 In the paired doubao-2-pro comparison, Agent4Drone improves task pass rate by **+27.33 percentage points** over the ReAct baseline and reduces fully failed tasks from **32.40%** to **12.93%**. With stronger DeepSeek backends, Agent4Drone reaches a **70.27%** task pass rate and an **82.82%** global check pass rate. Detailed scenario-level and difficulty-level analyses are reported in the paper and project materials.
-
-## 🔐 Configuration and Security
-
-Do not commit real API keys or local credentials. Use example configuration files and environment variables for private values.
-
-Common environment variables:
-
-- `UAV_API_KEY`: API key used by agent-side tools to access the UAV simulator.
-- `OPENAI_API_KEY`: API key for OpenAI-compatible LLM providers.
-- `LLM_API_KEY`: generic fallback key used by Agent4Drone provider configuration.
-
-Recommended workflow:
-
-```bash
-cd agent4drone
-cp llm_settings.example.json llm_settings.json
-```
-
-Then edit `llm_settings.json` locally or provide secrets through environment variables. Keep tracked configuration files free of personal keys, provider credentials, and deployment-only privilege keys.
 
 ## 📝 Citation
 
