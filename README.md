@@ -58,6 +58,8 @@ Each component includes its own documentation for deeper usage details.
 
 ### 1. Start the simulation server
 
+For full server setup, UI options, API groups, and troubleshooting, see the [server README](server/README.md).
+
 ```bash
 cd server
 pip install -r requirements.txt
@@ -80,6 +82,8 @@ Useful server documentation:
 
 ### 2. Launch the GUI controller
 
+For the session manager workflow, GUI tabs, import/export behavior, and controller troubleshooting, see the [controller README](controller/README.md).
+
 ```bash
 cd controller
 pip install -r requirements.txt
@@ -90,9 +94,12 @@ The controller connects to the local server and provides session management, sce
 
 ### 3. Start the Agent4Drone service
 
+Agent4Drone calls an external LLM backend, so you need to provide your own model-provider API key before starting the service. You can either edit `llm_settings.json` locally or export an environment variable such as `OPENAI_API_KEY` or `LLM_API_KEY`.
+
 ```bash
 cd agent4drone
 cp llm_settings.example.json llm_settings.json
+# Add your own LLM API key in llm_settings.json, or export OPENAI_API_KEY / LLM_API_KEY.
 python agent_api_service.py
 ```
 
