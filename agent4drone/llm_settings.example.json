@@ -1,0 +1,106 @@
+{
+  "selected_provider": "volcengine",
+  "uav_base_url": "http://localhost:8000",
+  "uav_api_key": "",
+  "share_blackboard_by_session": true,
+  "toolchain_json_recording": false,
+  "provider_configs": {
+    "Ollama": {
+      "type": "ollama",
+      "base_url": "http://localhost:11434",
+      "models_endpoint": "/api/tags",
+      "chat_endpoint": "/api/chat",
+      "requires_api_key": false,
+      "api_key": "",
+      "encoding": "utf-8",
+      "default_model": "llama2",
+      "default_models": [],
+      "allow_endpoint_edit": false,
+      "allow_api_toggle": false,
+      "system_prompt": ""
+    },
+    "OpenAI": {
+      "type": "openai-compatible",
+      "base_url": "https://api.openai.com/v1",
+      "models_endpoint": "/models",
+      "chat_endpoint": "/chat/completions",
+      "requires_api_key": true,
+      "api_key": "",
+      "encoding": "utf-8",
+      "default_model": "gpt-4o-mini",
+      "default_models": [
+        "gpt-4o-mini",
+        "gpt-4o",
+        "gpt-4.1-mini",
+        "gpt-3.5-turbo"
+      ],
+      "allow_endpoint_edit": true,
+      "allow_api_toggle": true,
+      "system_prompt": ""
+    },
+    "volcengine": {
+      "type": "openai-compatible",
+      "base_url": "https://ark.cn-beijing.volces.com/api/coding/v3",
+      "models_endpoint": "/models",
+      "chat_endpoint": "/chat/completions",
+      "requires_api_key": true,
+      "api_key": "",
+      "encoding": "utf-8",
+      "default_model": "doubao-seed-2.0-pro",
+      "default_models": [
+        "doubao-seed-2.0-pro",
+        "doubao-seed-2.0-code",
+        "doubao-seed-2.0-lite",
+        "minimax-m2.7",
+        "glm-5.1",
+        "kimi-k2.6",
+        "deepseek-v3.2",
+        "deepseek-v4-pro",
+        "deepseek-v4-flash"
+      ],
+      "allow_endpoint_edit": true,
+      "allow_api_toggle": true,
+      "system_prompt": "You are a UAV task planning and action control agent. please answer in English no matter what language I ask."
+    },
+    "Deepseek API": {
+      "type": "openai-compatible",
+      "base_url": "https://api.deepseek.com",
+      "models_endpoint": "/models",
+      "chat_endpoint": "/chat/completions",
+      "requires_api_key": true,
+      "api_key": "",
+      "encoding": "utf-8",
+      "default_model": "deepseek-v4-pro",
+      "default_models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "allow_endpoint_edit": true,
+      "allow_api_toggle": true,
+      "system_prompt": "You are a UAV task planning and action control agent. please answer in English no matter what language I ask."
+    },
+    "PPIO": {
+      "type": "openai-compatible",
+      "base_url": "https://api.ppinfra.com/openai",
+      "models_endpoint": "/v1/anthropic",
+      "chat_endpoint": "/v1/chat/completions",
+      "requires_api_key": true,
+      "api_key": "",
+      "encoding": "utf-8",
+      "default_model": "qwen/qwen3.5-397b-a17b",
+      "default_models": [
+        "qwen/qwen3.5-397b-a17b",
+        "minimax/minimax-m2.5",
+        "minimax/minimax-m2.5-highspeed",
+        "deepseek/deepseek-v3.2-exp",
+        "zai-org/glm-5",
+        "zai-org/glm-5-turbo",
+        "moonshotai/kimi-k2.5",
+        "deepseek/deepseek-v3.2"
+      ],
+      "allow_endpoint_edit": true,
+      "allow_api_toggle": true,
+      "system_prompt": "You are a UAV task planning and action control agent. please answer in English no matter what language I ask."
+    }
+  }
+}

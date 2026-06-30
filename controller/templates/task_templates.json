@@ -1,0 +1,32 @@
+{
+  "needs_drone": {
+    "name": "Drone Task",
+    "content": "Use {drone_name}",
+    "suitable_task": [
+      "all"
+    ],
+    "created_at": 1777051752.2799628,
+    "last_modified": 1777051752.320308,
+    "is_builtin": false
+  },
+  "tracking": {
+    "name": "Tracking Task",
+    "content": "Track {target_name}",
+    "suitable_task": [
+      "target_tracking"
+    ],
+    "created_at": 1777051752.2924411,
+    "last_modified": 1777051752.2924411,
+    "is_builtin": false
+  },
+  "simple": {
+    "name": "Simple Task",
+    "content": "Do it",
+    "suitable_task": [
+      "all"
+    ],
+    "created_at": 1777051752.327287,
+    "last_modified": 1777051752.327287,
+    "is_builtin": false
+  }
+}

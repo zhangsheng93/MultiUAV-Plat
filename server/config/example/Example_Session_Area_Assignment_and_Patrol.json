@@ -1,0 +1,626 @@
+{
+  "id": "533c18a5-984c",
+  "name": "Example Session (Area Assignment and Patrol)",
+  "description": "Example Session (Area Assignment and Patrol) covers a 1024\u00d7768 m mission zone. It is configured for area assignment and patrol. Random seeding will create 10 drones, 6 targets, 6 obstacles.",
+  "status": "active",
+  "task_type": "area_assignment_and_patrol",
+  "task_description": "This is an example session.",
+  "created_at": 1761315072.940043,
+  "last_updated": 1761315072.974859,
+  "statistics": {
+    "drone_count": 10,
+    "target_count": 6,
+    "obstacle_count": 6,
+    "environment_id": "ace43eb4",
+    "total_commands_executed": 0,
+    "total_flight_time": 0.0,
+    "total_distance_traveled": 0.0,
+    "total_target_reaches": 0,
+    "drones_with_target_reaches": 0,
+    "unique_targets_reached": 0,
+    "session_time": 0.0,
+    "command_history_size": 0,
+    "target_reach_log_size": 0,
+    "task_progress": {
+      "task_type": "area_assignment_and_patrol",
+      "progress_percentage": 0,
+      "is_completed": false,
+      "status_message": "Task to be Done",
+      "details": {
+        "total_targets": 0,
+        "average_coverage": 0.0
+      }
+    },
+    "task_count": 0
+  },
+  "environment": {
+    "id": "ace43eb4",
+    "name": "Example Session (Area Assignment and Patrol) Environment",
+    "weather": "clear",
+    "temperature": 25.4,
+    "humidity": 42.6,
+    "pressure": 993.9,
+    "wind_speed": 3.0,
+    "wind_direction": "northeast",
+    "visibility": 13625.3,
+    "created_at": 1761315072.950909,
+    "last_updated": 1761315072.950909
+  },
+  "drones": [
+    {
+      "id": "66c0bdca",
+      "name": "Drone 1",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 976,
+        "y": 743,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 69,
+      "battery_capacity": 69,
+      "max_speed": 13,
+      "max_altitude": 111,
+      "home_position": {
+        "x": 976,
+        "y": 743,
+        "z": 0
+      },
+      "created_at": 1761315072.9607291,
+      "last_updated": 1761315072.96073
+    },
+    {
+      "id": "4efd4d62",
+      "name": "Drone 2",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 885,
+        "y": 650,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 84,
+      "battery_capacity": 84,
+      "max_speed": 21,
+      "max_altitude": 116,
+      "home_position": {
+        "x": 885,
+        "y": 650,
+        "z": 0
+      },
+      "created_at": 1761315072.961869,
+      "last_updated": 1761315072.9618702
+    },
+    {
+      "id": "1997ec83",
+      "name": "Drone 3",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 591,
+        "y": 541,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 62,
+      "battery_capacity": 62,
+      "max_speed": 24,
+      "max_altitude": 142,
+      "home_position": {
+        "x": 591,
+        "y": 541,
+        "z": 0
+      },
+      "created_at": 1761315072.9629009,
+      "last_updated": 1761315072.9629009
+    },
+    {
+      "id": "e6fd9ab2",
+      "name": "Drone 4",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 911,
+        "y": 703,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 60,
+      "battery_capacity": 60,
+      "max_speed": 13,
+      "max_altitude": 127,
+      "home_position": {
+        "x": 911,
+        "y": 703,
+        "z": 0
+      },
+      "created_at": 1761315072.963834,
+      "last_updated": 1761315072.9638348
+    },
+    {
+      "id": "22b61365",
+      "name": "Drone 5",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 823,
+        "y": 573,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 74,
+      "battery_capacity": 74,
+      "max_speed": 10,
+      "max_altitude": 110,
+      "home_position": {
+        "x": 823,
+        "y": 573,
+        "z": 0
+      },
+      "created_at": 1761315072.964761,
+      "last_updated": 1761315072.9647622
+    },
+    {
+      "id": "8f7fd532",
+      "name": "Drone 6",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 884,
+        "y": 450,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 76,
+      "battery_capacity": 76,
+      "max_speed": 16,
+      "max_altitude": 131,
+      "home_position": {
+        "x": 884,
+        "y": 450,
+        "z": 0
+      },
+      "created_at": 1761315072.965621,
+      "last_updated": 1761315072.965622
+    },
+    {
+      "id": "816baebc",
+      "name": "Drone 7",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 953,
+        "y": 483,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 92,
+      "battery_capacity": 92,
+      "max_speed": 18,
+      "max_altitude": 109,
+      "home_position": {
+        "x": 953,
+        "y": 483,
+        "z": 0
+      },
+      "created_at": 1761315072.966454,
+      "last_updated": 1761315072.966455
+    },
+    {
+      "id": "fb9c0aa7",
+      "name": "Drone 8",
+      "model": "Model-D4",
+      "status": "hovering",
+      "position": {
+        "x": 959,
+        "y": 576,
+        "z": 11
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 78,
+      "battery_capacity": 78,
+      "max_speed": 23,
+      "max_altitude": 142,
+      "home_position": {
+        "x": 959,
+        "y": 576,
+        "z": 11
+      },
+      "created_at": 1761315072.967289,
+      "last_updated": 1761315072.9672902
+    },
+    {
+      "id": "43da682d",
+      "name": "Drone 9",
+      "model": "Model-C",
+      "status": "hovering",
+      "position": {
+        "x": 804,
+        "y": 645,
+        "z": 11
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 64,
+      "battery_capacity": 64,
+      "max_speed": 18,
+      "max_altitude": 85,
+      "home_position": {
+        "x": 804,
+        "y": 645,
+        "z": 11
+      },
+      "created_at": 1761315072.9680939,
+      "last_updated": 1761315072.968095
+    },
+    {
+      "id": "f21fcbf3",
+      "name": "Drone 10",
+      "model": "Model-D4",
+      "status": "idle",
+      "position": {
+        "x": 908,
+        "y": 596,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 100,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 90,
+      "battery_capacity": 90,
+      "max_speed": 23,
+      "max_altitude": 83,
+      "home_position": {
+        "x": 908,
+        "y": 596,
+        "z": 0
+      },
+      "created_at": 1761315072.968944,
+      "last_updated": 1761315072.968944
+    }
+  ],
+  "targets": [
+    {
+      "id": "1983df70",
+      "name": "Circle Target 1",
+      "type": "circle",
+      "position": {
+        "x": 239,
+        "y": 124,
+        "z": 0
+      },
+      "description": "",
+      "radius": 42,
+      "created_at": 1761315072.952615,
+      "last_updated": 1761315072.952615,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    },
+    {
+      "id": "a19eb50f",
+      "name": "Polygon Target 2",
+      "type": "polygon",
+      "position": {
+        "x": 205,
+        "y": 484,
+        "z": 0
+      },
+      "description": "",
+      "radius": 1,
+      "created_at": 1761315072.954018,
+      "last_updated": 1761315072.954018,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null,
+      "vertices": [
+        {
+          "x": 126,
+          "y": 404
+        },
+        {
+          "x": 285,
+          "y": 404
+        },
+        {
+          "x": 285,
+          "y": 563
+        },
+        {
+          "x": 126,
+          "y": 563
+        }
+      ]
+    },
+    {
+      "id": "ff7961e5",
+      "name": "Circle Target 3",
+      "type": "circle",
+      "position": {
+        "x": 737,
+        "y": 444,
+        "z": 0
+      },
+      "description": "",
+      "radius": 95,
+      "created_at": 1761315072.955521,
+      "last_updated": 1761315072.955521,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    },
+    {
+      "id": "87b0710b",
+      "name": "Polygon Target 4",
+      "type": "polygon",
+      "position": {
+        "x": 379,
+        "y": 239,
+        "z": 0
+      },
+      "description": "",
+      "radius": 1,
+      "created_at": 1761315072.956896,
+      "last_updated": 1761315072.956897,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null,
+      "vertices": [
+        {
+          "x": 305,
+          "y": 165
+        },
+        {
+          "x": 453,
+          "y": 165
+        },
+        {
+          "x": 453,
+          "y": 313
+        },
+        {
+          "x": 305,
+          "y": 313
+        }
+      ]
+    },
+    {
+      "id": "66ec21c1",
+      "name": "Circle Target 5",
+      "type": "circle",
+      "position": {
+        "x": 844,
+        "y": 112,
+        "z": 0
+      },
+      "description": "",
+      "radius": 53,
+      "created_at": 1761315072.958132,
+      "last_updated": 1761315072.958132,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    },
+    {
+      "id": "8d44976e",
+      "name": "Polygon Target 6",
+      "type": "polygon",
+      "position": {
+        "x": 426,
+        "y": 655,
+        "z": 0
+      },
+      "description": "",
+      "radius": 1,
+      "created_at": 1761315072.959473,
+      "last_updated": 1761315072.959473,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null,
+      "vertices": [
+        {
+          "x": 336,
+          "y": 565
+        },
+        {
+          "x": 516,
+          "y": 565
+        },
+        {
+          "x": 516,
+          "y": 745
+        },
+        {
+          "x": 336,
+          "y": 745
+        }
+      ]
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "5229d15b",
+      "name": "Circle Obstacle 1",
+      "type": "circle",
+      "position": {
+        "x": 50,
+        "y": 299,
+        "z": 0
+      },
+      "description": "",
+      "radius": 27,
+      "width": null,
+      "length": null,
+      "vertices": [],
+      "height": 20,
+      "area": 2273.2878600641097,
+      "created_at": 1761315072.969772,
+      "last_updated": 1761315072.969772
+    },
+    {
+      "id": "21b118e5",
+      "name": "Circle Obstacle 2",
+      "type": "circle",
+      "position": {
+        "x": 249,
+        "y": 265,
+        "z": 0
+      },
+      "description": "",
+      "radius": 22,
+      "width": null,
+      "length": null,
+      "vertices": [],
+      "height": 20,
+      "area": 1548.3025233951935,
+      "created_at": 1761315072.970558,
+      "last_updated": 1761315072.970558
+    },
+    {
+      "id": "91fdf81d",
+      "name": "Circle Obstacle 3",
+      "type": "circle",
+      "position": {
+        "x": 405,
+        "y": 85,
+        "z": 0
+      },
+      "description": "",
+      "radius": 34,
+      "width": null,
+      "length": null,
+      "vertices": [],
+      "height": 67,
+      "area": 3610.3496934319255,
+      "created_at": 1761315072.971381,
+      "last_updated": 1761315072.971382
+    },
+    {
+      "id": "7407d9e7",
+      "name": "Ellipse Obstacle 4",
+      "type": "ellipse",
+      "position": {
+        "x": 139,
+        "y": 240,
+        "z": 0
+      },
+      "description": "",
+      "radius": null,
+      "width": 36,
+      "length": 14,
+      "vertices": [],
+      "height": 3,
+      "area": 1563.319336279353,
+      "created_at": 1761315072.972266,
+      "last_updated": 1761315072.972266
+    },
+    {
+      "id": "9d2ac87a",
+      "name": "Ellipse Obstacle 5",
+      "type": "ellipse",
+      "position": {
+        "x": 119,
+        "y": 141,
+        "z": 0
+      },
+      "description": "",
+      "radius": null,
+      "width": 33,
+      "length": 20,
+      "vertices": [],
+      "height": 2,
+      "area": 2038.1396499429145,
+      "created_at": 1761315072.973078,
+      "last_updated": 1761315072.973078
+    },
+    {
+      "id": "7184e113",
+      "name": "Polygon Obstacle 6",
+      "type": "polygon",
+      "position": {
+        "x": 144,
+        "y": 36,
+        "z": null
+      },
+      "description": "",
+      "radius": null,
+      "width": null,
+      "length": null,
+      "vertices": [
+        {
+          "x": 144,
+          "y": 36
+        },
+        {
+          "x": 186,
+          "y": 36
+        },
+        {
+          "x": 186,
+          "y": 77
+        },
+        {
+          "x": 144,
+          "y": 77
+        }
+      ],
+      "height": 48,
+      "area": 1730.5600000000006,
+      "created_at": 1761315072.973956,
+      "last_updated": 1761315072.973956
+    }
+  ],
+  "tasks": [],
+  "history": {
+    "command_history": [],
+    "status_history": {},
+    "path_history": {},
+    "target_reaches": {},
+    "area_coverage": {}
+  }
+}

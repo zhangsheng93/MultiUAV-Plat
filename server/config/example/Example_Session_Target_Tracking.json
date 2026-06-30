@@ -1,0 +1,962 @@
+{
+  "id": "1019ffa7-3890",
+  "name": "Example Session (Target Tracking)",
+  "description": "Example Session (Target Tracking) covers a 1024\u00d7768 m mission zone. It is configured for target tracking. Random seeding will create 20 drones, 10 targets, 6 obstacles.",
+  "status": "active",
+  "task_type": "target_tracking",
+  "task_description": "This is an example of target tracking.",
+  "created_at": 1761315152.455799,
+  "last_updated": 1761315152.498902,
+  "statistics": {
+    "drone_count": 20,
+    "target_count": 10,
+    "obstacle_count": 6,
+    "environment_id": "16d0bdaa",
+    "total_commands_executed": 0,
+    "total_flight_time": 0.0,
+    "total_distance_traveled": 0.0,
+    "total_target_reaches": 0,
+    "drones_with_target_reaches": 0,
+    "unique_targets_reached": 0,
+    "session_time": 0.0,
+    "command_history_size": 0,
+    "target_reach_log_size": 0,
+    "task_progress": {
+      "task_type": "target_tracking",
+      "progress_percentage": 0,
+      "is_completed": false,
+      "status_message": "Task to be Done",
+      "details": {
+        "total_targets": 10,
+        "currently_tracked": 0,
+        "ever_tracked": 0,
+        "currently_tracked_ids": [],
+        "ever_tracked_ids": []
+      }
+    },
+    "task_count": 0
+  },
+  "environment": {
+    "id": "16d0bdaa",
+    "name": "Example Session (Target Tracking) Environment",
+    "weather": "clear",
+    "temperature": 17.0,
+    "humidity": 47.6,
+    "pressure": 1001.2,
+    "wind_speed": 0.5,
+    "wind_direction": "west",
+    "visibility": 12122.2,
+    "created_at": 1761315152.466801,
+    "last_updated": 1761315152.466801
+  },
+  "drones": [
+    {
+      "id": "73c7e20e",
+      "name": "Drone 1",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 421,
+        "y": 480,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 74,
+      "battery_capacity": 74,
+      "max_speed": 18,
+      "max_altitude": 147,
+      "home_position": {
+        "x": 421,
+        "y": 480,
+        "z": 0
+      },
+      "created_at": 1761315152.480438,
+      "last_updated": 1761315152.480439
+    },
+    {
+      "id": "8d2f6826",
+      "name": "Drone 2",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 850,
+        "y": 511,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 89,
+      "battery_capacity": 89,
+      "max_speed": 14,
+      "max_altitude": 130,
+      "home_position": {
+        "x": 850,
+        "y": 511,
+        "z": 0
+      },
+      "created_at": 1761315152.481285,
+      "last_updated": 1761315152.4812858
+    },
+    {
+      "id": "606db57e",
+      "name": "Drone 3",
+      "model": "Model-B2",
+      "status": "hovering",
+      "position": {
+        "x": 539,
+        "y": 365,
+        "z": 11
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 89,
+      "battery_capacity": 89,
+      "max_speed": 22,
+      "max_altitude": 98,
+      "home_position": {
+        "x": 539,
+        "y": 365,
+        "z": 11
+      },
+      "created_at": 1761315152.4820511,
+      "last_updated": 1761315152.482052
+    },
+    {
+      "id": "451d574e",
+      "name": "Drone 4",
+      "model": "Model-D4",
+      "status": "idle",
+      "position": {
+        "x": 193,
+        "y": 529,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 85,
+      "battery_capacity": 85,
+      "max_speed": 13,
+      "max_altitude": 145,
+      "home_position": {
+        "x": 193,
+        "y": 529,
+        "z": 0
+      },
+      "created_at": 1761315152.4828851,
+      "last_updated": 1761315152.4828851
+    },
+    {
+      "id": "12e6f3ec",
+      "name": "Drone 5",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 459,
+        "y": 532,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 88,
+      "battery_capacity": 88,
+      "max_speed": 20,
+      "max_altitude": 149,
+      "home_position": {
+        "x": 459,
+        "y": 532,
+        "z": 0
+      },
+      "created_at": 1761315152.483747,
+      "last_updated": 1761315152.4837482
+    },
+    {
+      "id": "4878329a",
+      "name": "Drone 6",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 353,
+        "y": 167,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 64,
+      "battery_capacity": 64,
+      "max_speed": 11,
+      "max_altitude": 83,
+      "home_position": {
+        "x": 353,
+        "y": 167,
+        "z": 0
+      },
+      "created_at": 1761315152.484535,
+      "last_updated": 1761315152.484535
+    },
+    {
+      "id": "1264e173",
+      "name": "Drone 7",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 315,
+        "y": 641,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 95,
+      "battery_capacity": 95,
+      "max_speed": 13,
+      "max_altitude": 123,
+      "home_position": {
+        "x": 315,
+        "y": 641,
+        "z": 0
+      },
+      "created_at": 1761315152.485258,
+      "last_updated": 1761315152.485259
+    },
+    {
+      "id": "9d5d3d43",
+      "name": "Drone 8",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 827,
+        "y": 623,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 84,
+      "battery_capacity": 84,
+      "max_speed": 13,
+      "max_altitude": 150,
+      "home_position": {
+        "x": 827,
+        "y": 623,
+        "z": 0
+      },
+      "created_at": 1761315152.485949,
+      "last_updated": 1761315152.48595
+    },
+    {
+      "id": "038ce721",
+      "name": "Drone 9",
+      "model": "Model-B2",
+      "status": "hovering",
+      "position": {
+        "x": 915,
+        "y": 331,
+        "z": 4
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 69,
+      "battery_capacity": 69,
+      "max_speed": 12,
+      "max_altitude": 137,
+      "home_position": {
+        "x": 915,
+        "y": 331,
+        "z": 4
+      },
+      "created_at": 1761315152.486617,
+      "last_updated": 1761315152.486618
+    },
+    {
+      "id": "ca5095cb",
+      "name": "Drone 10",
+      "model": "Model-D4",
+      "status": "idle",
+      "position": {
+        "x": 224,
+        "y": 62,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 79,
+      "battery_capacity": 79,
+      "max_speed": 16,
+      "max_altitude": 123,
+      "home_position": {
+        "x": 224,
+        "y": 62,
+        "z": 0
+      },
+      "created_at": 1761315152.487298,
+      "last_updated": 1761315152.487298
+    },
+    {
+      "id": "7c07258a",
+      "name": "Drone 11",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 840,
+        "y": 261,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 67,
+      "battery_capacity": 67,
+      "max_speed": 23,
+      "max_altitude": 135,
+      "home_position": {
+        "x": 840,
+        "y": 261,
+        "z": 0
+      },
+      "created_at": 1761315152.4881458,
+      "last_updated": 1761315152.488147
+    },
+    {
+      "id": "f26a6595",
+      "name": "Drone 12",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 679,
+        "y": 731,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 99,
+      "battery_capacity": 99,
+      "max_speed": 24,
+      "max_altitude": 107,
+      "home_position": {
+        "x": 679,
+        "y": 731,
+        "z": 0
+      },
+      "created_at": 1761315152.4889479,
+      "last_updated": 1761315152.4889479
+    },
+    {
+      "id": "178f72d9",
+      "name": "Drone 13",
+      "model": "Model-B2",
+      "status": "idle",
+      "position": {
+        "x": 969,
+        "y": 316,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 75,
+      "battery_capacity": 75,
+      "max_speed": 16,
+      "max_altitude": 132,
+      "home_position": {
+        "x": 969,
+        "y": 316,
+        "z": 0
+      },
+      "created_at": 1761315152.489674,
+      "last_updated": 1761315152.489674
+    },
+    {
+      "id": "6464dbaa",
+      "name": "Drone 14",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 984,
+        "y": 56,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 60,
+      "battery_capacity": 60,
+      "max_speed": 25,
+      "max_altitude": 97,
+      "home_position": {
+        "x": 984,
+        "y": 56,
+        "z": 0
+      },
+      "created_at": 1761315152.490318,
+      "last_updated": 1761315152.490319
+    },
+    {
+      "id": "4188338d",
+      "name": "Drone 15",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 473,
+        "y": 312,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 84,
+      "battery_capacity": 84,
+      "max_speed": 14,
+      "max_altitude": 96,
+      "home_position": {
+        "x": 473,
+        "y": 312,
+        "z": 0
+      },
+      "created_at": 1761315152.4909382,
+      "last_updated": 1761315152.4909382
+    },
+    {
+      "id": "78c884f8",
+      "name": "Drone 16",
+      "model": "Model-D4",
+      "status": "idle",
+      "position": {
+        "x": 686,
+        "y": 515,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 99,
+      "battery_capacity": 99,
+      "max_speed": 21,
+      "max_altitude": 88,
+      "home_position": {
+        "x": 686,
+        "y": 515,
+        "z": 0
+      },
+      "created_at": 1761315152.49156,
+      "last_updated": 1761315152.49156
+    },
+    {
+      "id": "0c7c6d46",
+      "name": "Drone 17",
+      "model": "Model-C",
+      "status": "idle",
+      "position": {
+        "x": 576,
+        "y": 122,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 75,
+      "battery_capacity": 75,
+      "max_speed": 14,
+      "max_altitude": 132,
+      "home_position": {
+        "x": 576,
+        "y": 122,
+        "z": 0
+      },
+      "created_at": 1761315152.49229,
+      "last_updated": 1761315152.49229
+    },
+    {
+      "id": "61613f85",
+      "name": "Drone 18",
+      "model": "Model-A2",
+      "status": "hovering",
+      "position": {
+        "x": 732,
+        "y": 426,
+        "z": 10
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 88,
+      "battery_capacity": 88,
+      "max_speed": 10,
+      "max_altitude": 139,
+      "home_position": {
+        "x": 732,
+        "y": 426,
+        "z": 10
+      },
+      "created_at": 1761315152.4930098,
+      "last_updated": 1761315152.493011
+    },
+    {
+      "id": "30f4ead7",
+      "name": "Drone 19",
+      "model": "Model-D4",
+      "status": "hovering",
+      "position": {
+        "x": 251,
+        "y": 172,
+        "z": 10
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 64,
+      "battery_capacity": 64,
+      "max_speed": 21,
+      "max_altitude": 138,
+      "home_position": {
+        "x": 251,
+        "y": 172,
+        "z": 10
+      },
+      "created_at": 1761315152.4937239,
+      "last_updated": 1761315152.4937248
+    },
+    {
+      "id": "6cb5a020",
+      "name": "Drone 20",
+      "model": "Model-A2",
+      "status": "idle",
+      "position": {
+        "x": 812,
+        "y": 84,
+        "z": 0
+      },
+      "heading": 0.0,
+      "speed": 0,
+      "perceived_radius": 50,
+      "task_radius": 10,
+      "battery_level": 100.0,
+      "battery_volume": 82,
+      "battery_capacity": 82,
+      "max_speed": 14,
+      "max_altitude": 128,
+      "home_position": {
+        "x": 812,
+        "y": 84,
+        "z": 0
+      },
+      "created_at": 1761315152.494383,
+      "last_updated": 1761315152.494384
+    }
+  ],
+  "targets": [
+    {
+      "id": "b3e49ea1",
+      "name": "Moving Target 1",
+      "type": "moving",
+      "position": {
+        "x": 463,
+        "y": 567,
+        "z": 1
+      },
+      "description": "",
+      "radius": 4,
+      "created_at": 1761315152.4687018,
+      "last_updated": 1761315152.468703,
+      "velocity": {
+        "x": -3.0,
+        "y": 1.2,
+        "z": -0.6
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "bece7d63",
+      "name": "Moving Target 2",
+      "type": "moving",
+      "position": {
+        "x": 835,
+        "y": 184,
+        "z": 4
+      },
+      "description": "",
+      "radius": 7,
+      "created_at": 1761315152.4701178,
+      "last_updated": 1761315152.4701178,
+      "velocity": {
+        "x": 4.0,
+        "y": 4.5,
+        "z": -0.7
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "d2ead242",
+      "name": "Moving Target 3",
+      "type": "moving",
+      "position": {
+        "x": 1007,
+        "y": 545,
+        "z": 3
+      },
+      "description": "",
+      "radius": 10,
+      "created_at": 1761315152.471315,
+      "last_updated": 1761315152.471315,
+      "velocity": {
+        "x": -0.3,
+        "y": 2.1,
+        "z": -0.9
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "31e18a70",
+      "name": "Fixed Target 4",
+      "type": "fixed",
+      "position": {
+        "x": 930,
+        "y": 541,
+        "z": 3
+      },
+      "description": "",
+      "radius": 7,
+      "created_at": 1761315152.472567,
+      "last_updated": 1761315152.472567,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    },
+    {
+      "id": "1c18ee13",
+      "name": "Fixed Target 5",
+      "type": "fixed",
+      "position": {
+        "x": 551,
+        "y": 462,
+        "z": 4
+      },
+      "description": "",
+      "radius": 5,
+      "created_at": 1761315152.473753,
+      "last_updated": 1761315152.473753,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    },
+    {
+      "id": "f6015cb0",
+      "name": "Moving Target 6",
+      "type": "moving",
+      "position": {
+        "x": 482,
+        "y": 268,
+        "z": 7
+      },
+      "description": "",
+      "radius": 7,
+      "created_at": 1761315152.474932,
+      "last_updated": 1761315152.474932,
+      "velocity": {
+        "x": -2.8,
+        "y": 0.1,
+        "z": 0.3
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "3f5d8fa9",
+      "name": "Moving Target 7",
+      "type": "moving",
+      "position": {
+        "x": 197,
+        "y": 25,
+        "z": 3
+      },
+      "description": "",
+      "radius": 7,
+      "created_at": 1761315152.476212,
+      "last_updated": 1761315152.476212,
+      "velocity": {
+        "x": 4.1,
+        "y": 0.2,
+        "z": -0.3
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "7fc9790a",
+      "name": "Moving Target 8",
+      "type": "moving",
+      "position": {
+        "x": 196,
+        "y": 363,
+        "z": 9
+      },
+      "description": "",
+      "radius": 7,
+      "created_at": 1761315152.477567,
+      "last_updated": 1761315152.477568,
+      "velocity": {
+        "x": -1.6,
+        "y": 1.5,
+        "z": -0.1
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "7deab004",
+      "name": "Moving Target 9",
+      "type": "moving",
+      "position": {
+        "x": 670,
+        "y": 257,
+        "z": 5
+      },
+      "description": "",
+      "radius": 5,
+      "created_at": 1761315152.4785721,
+      "last_updated": 1761315152.4785721,
+      "velocity": {
+        "x": 0.9,
+        "y": 3.4,
+        "z": 0.0
+      },
+      "moving_path": [],
+      "current_path_index": 0,
+      "charge_amount": null
+    },
+    {
+      "id": "103696c8",
+      "name": "Fixed Target 10",
+      "type": "fixed",
+      "position": {
+        "x": 901,
+        "y": 468,
+        "z": 4
+      },
+      "description": "",
+      "radius": 9,
+      "created_at": 1761315152.479479,
+      "last_updated": 1761315152.479479,
+      "velocity": null,
+      "moving_path": null,
+      "current_path_index": null,
+      "charge_amount": null
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "4156f2d4",
+      "name": "Ellipse Obstacle 1",
+      "type": "ellipse",
+      "position": {
+        "x": 238,
+        "y": 325,
+        "z": 0
+      },
+      "description": "",
+      "radius": null,
+      "width": 30,
+      "length": 27,
+      "vertices": [],
+      "height": 5,
+      "area": 2545.6011112772735,
+      "created_at": 1761315152.495063,
+      "last_updated": 1761315152.495063
+    },
+    {
+      "id": "9b167af4",
+      "name": "Polygon Obstacle 2",
+      "type": "polygon",
+      "position": {
+        "x": 310,
+        "y": 226,
+        "z": null
+      },
+      "description": "",
+      "radius": null,
+      "width": null,
+      "length": null,
+      "vertices": [
+        {
+          "x": 310,
+          "y": 226
+        },
+        {
+          "x": 402,
+          "y": 226
+        },
+        {
+          "x": 402,
+          "y": 318
+        },
+        {
+          "x": 310,
+          "y": 318
+        }
+      ],
+      "height": 19,
+      "area": 8353.959999999995,
+      "created_at": 1761315152.495795,
+      "last_updated": 1761315152.495795
+    },
+    {
+      "id": "db06e94f",
+      "name": "Ellipse Obstacle 3",
+      "type": "ellipse",
+      "position": {
+        "x": 49,
+        "y": 339,
+        "z": 0
+      },
+      "description": "",
+      "radius": null,
+      "width": 16,
+      "length": 14,
+      "vertices": [],
+      "height": 19,
+      "area": 695.5486135047801,
+      "created_at": 1761315152.4963899,
+      "last_updated": 1761315152.4963899
+    },
+    {
+      "id": "3507e45c",
+      "name": "Polygon Obstacle 4",
+      "type": "polygon",
+      "position": {
+        "x": 118,
+        "y": 181,
+        "z": null
+      },
+      "description": "",
+      "radius": null,
+      "width": null,
+      "length": null,
+      "vertices": [
+        {
+          "x": 118,
+          "y": 181
+        },
+        {
+          "x": 206,
+          "y": 181
+        },
+        {
+          "x": 206,
+          "y": 268
+        },
+        {
+          "x": 118,
+          "y": 268
+        }
+      ],
+      "height": 55,
+      "area": 7673.760000000003,
+      "created_at": 1761315152.4970062,
+      "last_updated": 1761315152.4970062
+    },
+    {
+      "id": "5af78731",
+      "name": "Circle Obstacle 5",
+      "type": "circle",
+      "position": {
+        "x": 120,
+        "y": 51,
+        "z": 0
+      },
+      "description": "",
+      "radius": 7,
+      "width": null,
+      "length": null,
+      "vertices": [],
+      "height": 54,
+      "area": 158.36768566746147,
+      "created_at": 1761315152.4975848,
+      "last_updated": 1761315152.4975848
+    },
+    {
+      "id": "8eb68e93",
+      "name": "Ellipse Obstacle 6",
+      "type": "ellipse",
+      "position": {
+        "x": 407,
+        "y": 78,
+        "z": 0
+      },
+      "description": "",
+      "radius": null,
+      "width": 28,
+      "length": 20,
+      "vertices": [],
+      "height": 13,
+      "area": 1741.6989671501813,
+      "created_at": 1761315152.498156,
+      "last_updated": 1761315152.498156
+    }
+  ],
+  "tasks": [],
+  "history": {
+    "command_history": [],
+    "status_history": {},
+    "path_history": {},
+    "target_reaches": {},
+    "area_coverage": {}
+  }
+}
