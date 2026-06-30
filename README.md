@@ -25,6 +25,8 @@ MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark fo
 
 Large language models provide a promising interface for high-level robotic task planning, but evaluating them in multi-UAV collaboration is difficult. Existing UAV simulators mainly emphasize dynamics, perception, or low-level control, while LLM-agent evaluation needs a mission-level interface with restricted APIs, role-based information access, partial observations, hidden validation logic, and closed-loop execution.
 
+For paper resources, visual summaries, downloads, and leaderboard updates, visit the [MultiUAV-Plat project website](https://zhangsheng93.github.io/multiuavweb/).
+
 MultiUAV-Plat addresses this gap with three open-source components:
 
 - **MultiUAV-Plat platform**: a RESTful multi-UAV simulation environment with agent-facing observations, role-based access, session management, and optional 2D/3D visualization.
