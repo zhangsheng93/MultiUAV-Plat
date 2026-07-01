@@ -4,7 +4,7 @@
 
 🌐 语言： [English](README.md) | **中文**
 
-[📄 论文](https://arxiv.org/) | [🌐 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
+[📄 论文](https://arxiv.org/abs/2606.31073) | [🌐 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
 
 MultiUAV-Plat 是一个轻量级开源仿真平台与测评基准，用于研究 LLM agent 如何在受限 API 和局部观测条件下，对多无人机任务进行规划、执行、观察与验证。
 
@@ -160,14 +160,17 @@ Benchmark session 将结构化 JSON 场景数据与可视化资源配对。Agent
 
 ## 📝 引用
 
-如果你在研究中使用 MultiUAV-Plat、MultiUAV-Plat Benchmark 或 Agent4Drone，请引用本项目。以下 BibTeX 条目会在正式发表信息确定后更新。
+如果你在研究中使用 MultiUAV-Plat、MultiUAV-Plat Benchmark 或 Agent4Drone，请引用以下 arXiv 预印本条目。
 
 ```bibtex
 @article{zhang2026multiuavplat,
-  title   = {MultiUAV-Plat: An LLM-Oriented Platform, Benchmark and Framework for Multi-UAV Collaborative Task Planning},
-  author  = {Zhang, Sheng and Li, Qinglin and Zang, Yuechao and Huang, Xueqin and Fu, Yijia and Zhu, Cheng},
-  journal = {arXiv preprint},
-  year    = {2026}
+  title         = {MultiUAV-Plat: An LLM-Oriented Platform, Benchmark and Framework for Multi-UAV Collaborative Task Planning},
+  author        = {Zhang, Sheng and Li, Qinglin and Zang, Yuechao and Huang, Xueqin and Fu, Yijia and Zhu, Cheng},
+  journal       = {arXiv preprint arXiv:2606.31073},
+  year          = {2026},
+  eprint        = {2606.31073},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2606.31073}
 }
 ```
 

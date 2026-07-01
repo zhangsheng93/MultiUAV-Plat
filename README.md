@@ -4,7 +4,7 @@
 
 🌐 Language: **English** | [中文](README_CN.md)
 
-[📄 Paper](https://arxiv.org/) | [🌐 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
+[📄 Paper](https://arxiv.org/abs/2606.31073) | [🌐 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
 
 MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark for studying LLM agents that plan, act, observe, and verify multi-UAV missions through restricted APIs and partial local perception.
 
@@ -160,14 +160,17 @@ In the paired doubao-2-pro comparison, Agent4Drone improves task pass rate by **
 
 ## 📝 Citation
 
-If you use MultiUAV-Plat, MultiUAV-Plat Benchmark, or Agent4Drone in your research, please cite the project. The BibTeX entry below will be updated after publication metadata is finalized.
+If you use MultiUAV-Plat, MultiUAV-Plat Benchmark, or Agent4Drone in your research, please cite the arXiv preprint.
 
 ```bibtex
 @article{zhang2026multiuavplat,
-  title   = {MultiUAV-Plat: An LLM-Oriented Platform, Benchmark and Framework for Multi-UAV Collaborative Task Planning},
-  author  = {Zhang, Sheng and Li, Qinglin and Zang, Yuechao and Huang, Xueqin and Fu, Yijia and Zhu, Cheng},
-  journal = {arXiv preprint},
-  year    = {2026}
+  title         = {MultiUAV-Plat: An LLM-Oriented Platform, Benchmark and Framework for Multi-UAV Collaborative Task Planning},
+  author        = {Zhang, Sheng and Li, Qinglin and Zang, Yuechao and Huang, Xueqin and Fu, Yijia and Zhu, Cheng},
+  journal       = {arXiv preprint arXiv:2606.31073},
+  year          = {2026},
+  eprint        = {2606.31073},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2606.31073}
 }
 ```
 
