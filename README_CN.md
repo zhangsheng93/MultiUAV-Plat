@@ -56,7 +56,29 @@ benchmark/    测评基准会话和场景资源
 
 每个组件都包含更详细的独立说明文档。
 
-## 🚀 快速开始
+## ⬇️ Releases
+
+如果你只是希望直接运行平台，可以从 [GitHub Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) 下载预编译二进制包，无需安装源码依赖。Release 包中包含独立的仿真服务端可执行文件、GUI controller 可执行文件，以及配套文档和会话资源。
+
+请先启动 server，再启动 controller。
+
+| 系统 | Release 包 | 运行方式 |
+| --- | --- | --- |
+| Windows | `MultiUAV-Plat-v0.40_Windows.zip` | 双击 `MultiUAV-Plat.Server.v0.40.exe`，再双击 `MultiUAV-Plat.Controller.v0.40.exe`。 |
+| macOS | `MultiUAV-Plat-v0.40_Mac.zip` | 可以双击可执行文件，也可以在终端中运行 `./MultiUAV-Plat.Server.v0.40` 和 `./MultiUAV-Plat.Controller.v0.40`。 |
+| Linux | Linux release package | 在 shell 中运行 server 和 controller 可执行文件，同样按照先 server、后 controller 的顺序启动。 |
+
+macOS/Linux 通过终端运行时，可能需要先添加可执行权限：
+
+```bash
+chmod +x MultiUAV-Plat.Server.v0.40 MultiUAV-Plat.Controller.v0.40
+./MultiUAV-Plat.Server.v0.40
+./MultiUAV-Plat.Controller.v0.40
+```
+
+下面的源码 Quick Start 更适合开发、定制和复现实验。
+
+## 🚀 快速开始（从源码启动）
 
 ### 1. 启动仿真服务端
 

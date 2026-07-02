@@ -56,7 +56,29 @@ benchmark/    Benchmark sessions and scenario assets
 
 Each component includes its own documentation for deeper usage details.
 
-## 🚀 Quick Start
+## ⬇️ Releases
+
+Prebuilt binary packages are available from [GitHub Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) for users who want to run the platform without installing the source-code dependencies. Release packages include separate executables for the simulation server and the GUI controller, plus the bundled documentation and session assets.
+
+Start the server first, then start the controller.
+
+| System | Package | How to run |
+| --- | --- | --- |
+| Windows | `MultiUAV-Plat-v0.40_Windows.zip` | Double-click `MultiUAV-Plat.Server.v0.40.exe`, then double-click `MultiUAV-Plat.Controller.v0.40.exe`. |
+| macOS | `MultiUAV-Plat-v0.40_Mac.zip` | Double-click the executables, or run them from Terminal with `./MultiUAV-Plat.Server.v0.40` and `./MultiUAV-Plat.Controller.v0.40`. |
+| Linux | Linux release package | Run the server and controller executables from a shell, following the same server-first order. |
+
+For macOS/Linux shell execution, you may need to add executable permission first:
+
+```bash
+chmod +x MultiUAV-Plat.Server.v0.40 MultiUAV-Plat.Controller.v0.40
+./MultiUAV-Plat.Server.v0.40
+./MultiUAV-Plat.Controller.v0.40
+```
+
+The source-code workflow below is recommended for development, customization, and reproducing experiments from the repository.
+
+## 🚀 Quick Start (from Source)
 
 ### 1. Start the simulation server
 
