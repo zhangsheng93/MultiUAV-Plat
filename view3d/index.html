@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MultiUAV-Plat 3D Viewer</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div>
+          <strong id="appTitle">MultiUAV-Plat 3D Viewer</strong>
+          <span id="sessionName" class="muted">Waiting for backend state</span>
+        </div>
+        <div class="topbar-actions">
+          <button id="languageToggle">中文</button>
+          <button id="cameraFit">Fit</button>
+          <button id="cameraTop">Top</button>
+          <button id="cameraFollow">Follow</button>
+          <select id="displayCoverageMode" title="Coverage Display">
+            <option value="surface">Continuous Surface</option>
+            <option value="points">Coverage Points</option>
+            <option value="both">Surface + Points</option>
+          </select>
+          <select id="screenshotFormat" title="Screenshot Format">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="svg">SVG</option>
+            <option value="pdf">PDF</option>
+            <option value="eps">EPS</option>
+          </select>
+          <button id="screenshotButton">Capture</button>
+          <button id="cheatSheetToggle" aria-expanded="false" aria-controls="cheatSheetPanel">CheatSheet</button>
+          <button id="infoToggle">Info</button>
+        </div>
+      </header>
+      <section id="cheatSheetPanel" class="cheat-sheet" aria-label="Keyboard Shortcuts">
+        <div class="cheat-sheet-header">
+          <h2 id="cheatSheetTitle">Keyboard Shortcuts</h2>
+          <button id="closeCheatSheet" title="Close Shortcuts">×</button>
+        </div>
+        <div class="shortcut-list">
+          <div class="shortcut-row">
+            <kbd>Esc</kbd>
+            <span id="cheatClear">Clear selection</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>↑ ↓ ← →</kbd>
+            <span id="cheatPan">Pan view</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>1</kbd>
+            <span id="cheatCameraFit">Fit all</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>2</kbd>
+            <span id="cheatCameraTop">Top view</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>3</kbd>
+            <span id="cheatCameraFollow">Follow view</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>+ / -</kbd>
+            <span id="cheatZoom">Zoom in / out</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>R</kbd>
+            <span id="cheatReset">Reset view</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>L</kbd>
+            <span id="cheatLabels">Show / hide labels</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>M</kbd>
+            <span id="cheatMinimap">Show / hide minimap</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>I</kbd>
+            <span id="cheatInfo">Show / hide info panel</span>
+          </div>
+        </div>
+      </section>
+      <main class="workspace">
+        <section id="sceneHost" class="scene-host">
+          <div class="map-overlay" id="miniMapPanel">
+            <canvas id="miniMapCanvas" width="220" height="160"></canvas>
+          </div>
+          <div class="nav-overlay" aria-label="View Navigation">
+            <label class="zoom-rail" title="Quick zoom">
+              <input id="quickZoomScale" type="range" min="40" max="500" value="100" orient="vertical" />
+            </label>
+            <button id="panUp" title="Pan View Up">↑</button>
+            <button id="panLeft" title="Pan View Left">←</button>
+            <button id="resetView" title="Reset View">⟳</button>
+            <button id="panRight" title="Pan View Right">→</button>
+            <button id="panDown" title="Pan View Down">↓</button>
+          </div>
+        </section>
+        <aside class="side-panel">
+          <div class="info-drawer-header">
+            <h2 id="selectionTitle">No Selection</h2>
+            <button id="closeInfo" title="Close Details">×</button>
+          </div>
+          <div id="selectionDetails" class="details">Click a drone, target, or obstacle to view details.</div>
+          <div class="control-card">
+            <h3 id="basicControlTitle">基础控制</h3>
+            <label>
+              <span id="altitudeLabel">起飞/移动高度</span>
+              <input id="altitudeInput" type="number" min="1" max="500" value="10" />
+            </label>
+            <label>
+              <span id="perceivedRadiusLabel">感知半径</span>
+              <input id="perceivedRadiusInput" type="number" min="1" max="5000" step="0.1" value="100" />
+            </label>
+            <div class="button-grid">
+              <button id="cmdTakeoff">起飞</button>
+              <button id="cmdLand">降落</button>
+              <button id="cmdHover">悬停</button>
+              <button id="cmdReturnHome">返航</button>
+              <button id="cmdCharge">充电</button>
+              <button id="cmdEmergency" class="danger">应急</button>
+              <button id="cmdUpdatePerceivedRadius" class="wide">更新感知半径</button>
+              <button id="cmdMoveMode" class="wide">点击地面移动</button>
+            </div>
+            <p id="commandStatus" class="command-status">选择无人机后可控制。</p>
+          </div>
+          <div class="control-card backend-tools-card">
+            <h3 id="backendToolsTitle">后端联调</h3>
+            <label>
+              <span>覆盖显示</span>
+              <select id="coverageDisplayMode">
+                <option value="surface">连续面</option>
+                <option value="points">2D 覆盖点</option>
+                <option value="both">连续面 + 覆盖点</option>
+              </select>
+            </label>
+            <label>
+              <span>当前会话</span>
+              <select id="sessionToolSelect"></select>
+            </label>
+            <div class="button-grid">
+              <button id="sessionToolRefresh">刷新会话</button>
+              <button id="sessionToolSwitch">切换</button>
+              <button id="sessionToolReset">重置当前</button>
+              <button id="sessionToolExport">导出 JSON</button>
+              <button id="sessionToolDelete" class="danger">删除会话</button>
+              <button id="backendScreenshotButton">后端截图</button>
+            </div>
+            <div class="compact-inputs">
+              <label>
+                <span>截图格式</span>
+                <select id="backendScreenshotFormat">
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="svg">SVG</option>
+                  <option value="pdf">PDF</option>
+                  <option value="eps">EPS</option>
+                </select>
+              </label>
+              <label>
+                <span>尺寸</span>
+                <input id="backendScreenshotSize" type="text" value="1600x1000" />
+              </label>
+            </div>
+            <label class="inline-check">
+              <input id="backendScreenshotShowStatus" type="checkbox" checked />
+              <span>包含状态/路径/覆盖信息</span>
+            </label>
+            <pre id="sessionToolStatus" class="tool-output">可直接调用原始后端会话与截图接口。</pre>
+          </div>
+          <div class="control-card">
+            <h3 id="movementTitle">实时移动</h3>
+            <div class="compact-inputs">
+              <label>
+                <span id="moveStepLabel">平移步长</span>
+                <input id="moveStepInput" type="number" min="1" max="500" value="20" />
+              </label>
+              <label>
+                <span id="altitudeStepLabel">高度步长</span>
+                <input id="altitudeStepInput" type="number" min="1" max="100" value="5" />
+              </label>
+            </div>
+            <div class="movement-pad">
+              <button id="relUp">升</button>
+              <button id="relForward">前</button>
+              <button id="relLeft">左</button>
+              <button id="relRight">右</button>
+              <button id="relBackward">后</button>
+              <button id="relDown">降</button>
+            </div>
+          </div>
+          <div class="control-card backend-tools-card">
+            <h3 id="taskToolsTitle">任务与检查</h3>
+            <label>
+              <span>当前任务</span>
+              <select id="taskToolSelect"></select>
+            </label>
+            <div class="button-grid">
+              <button id="taskToolRefresh">刷新任务</button>
+              <button id="taskToolNext">下一个</button>
+              <button id="taskToolInspect">详情</button>
+              <button id="taskToolCheck">检查</button>
+              <button id="taskToolDone">标记完成</button>
+              <button id="taskToolPending">标记待完成</button>
+            </div>
+            <label>
+              <span>since_timestamp 可选</span>
+              <input id="taskSinceTimestamp" type="text" placeholder="例如 1710000000.0" />
+            </label>
+            <label>
+              <span>检查端点</span>
+              <select id="checkToolEndpoint">
+                <option value="target_is_fully_searched">target_is_fully_searched</option>
+                <option value="target_searched_area_percentage">target_searched_area_percentage</option>
+                <option value="task_progress">task_progress</option>
+                <option value="task_done">task_done</option>
+                <option value="drone_position">drone_position</option>
+                <option value="drone_altitude">drone_altitude</option>
+                <option value="drone_status">drone_status</option>
+                <option value="drone_on_ground">drone_on_ground</option>
+                <option value="all_drones_on_ground">all_drones_on_ground</option>
+                <option value="drone_hovering">drone_hovering</option>
+                <option value="all_drones_hovering">all_drones_hovering</option>
+                <option value="drone_over_height">drone_over_height</option>
+                <option value="drone_battery_level">drone_battery_level</option>
+                <option value="drone_heading">drone_heading</option>
+                <option value="drone_in_target">drone_in_target</option>
+                <option value="drone_at_home">drone_at_home</option>
+                <option value="target_within_drone_distance">target_within_drone_distance</option>
+                <option value="target_within_drone_task_radius">target_within_drone_task_radius</option>
+                <option value="target_within_drone_perceived_radius">target_within_drone_perceived_radius</option>
+                <option value="obstacle_within_drone_distance">obstacle_within_drone_distance</option>
+                <option value="obstacle_within_drone_perceived_radius">obstacle_within_drone_perceived_radius</option>
+                <option value="two_drones_distance">two_drones_distance</option>
+                <option value="drone_group_distance">drone_group_distance</option>
+                <option value="target_is_reached">target_is_reached</option>
+                <option value="target_is_reached_by_drone">target_is_reached_by_drone</option>
+                <option value="target_reached_drone_number">target_reached_drone_number</option>
+                <option value="moving_target_tracked">moving_target_tracked</option>
+                <option value="target_in_photo_taken_by_drone">target_in_photo_taken_by_drone</option>
+                <option value="drone_has_taken_off">drone_has_taken_off</option>
+                <option value="drone_has_landed">drone_has_landed</option>
+                <option value="drone_has_visited_position">drone_has_visited_position</option>
+                <option value="drone_has_moved_distance">drone_has_moved_distance</option>
+                <option value="drone_has_moved_directed_distance">drone_has_moved_directed_distance</option>
+                <option value="drone_has_hovered">drone_has_hovered</option>
+                <option value="drone_has_taken_photo">drone_has_taken_photo</option>
+                <option value="drone_has_charged">drone_has_charged</option>
+                <option value="drone_has_sent_message">drone_has_sent_message</option>
+                <option value="drone_has_sent_message_content">drone_has_sent_message_content</option>
+                <option value="all_drones_have_taken_off">all_drones_have_taken_off</option>
+                <option value="all_drones_have_landed">all_drones_have_landed</option>
+              </select>
+            </label>
+            <label>
+              <span>检查参数 JSON</span>
+              <textarea id="checkToolParams" rows="4" spellcheck="false">{"target_id": "target-1", "threshold": 0.99}</textarea>
+            </label>
+            <button id="checkToolRun" class="wide-button">运行检查</button>
+            <pre id="taskToolStatus" class="tool-output">任务队列和 /check 结果会显示在这里。</pre>
+          </div>
+          <div class="control-card backend-tools-card">
+            <h3 id="advancedCommandTitle">高级命令</h3>
+            <label>
+              <span>无人机 ID</span>
+              <input id="advancedCommandDroneId" type="text" placeholder="选中无人机会自动填充" />
+            </label>
+            <label>
+              <span>命令</span>
+              <select id="advancedCommandName">
+                <option value="connect">connect</option>
+                <option value="disconnect">disconnect</option>
+                <option value="rotate">rotate</option>
+                <option value="set_home">set_home</option>
+                <option value="take_photo">take_photo</option>
+                <option value="send_message">send_message</option>
+                <option value="broadcast_message">broadcast_message</option>
+                <option value="emergency">emergency</option>
+              </select>
+            </label>
+            <label>
+              <span>参数 JSON</span>
+              <textarea id="advancedCommandParams" rows="4" spellcheck="false">{"message": "hello"}</textarea>
+            </label>
+            <button id="advancedCommandRun" class="wide-button">发送高级命令</button>
+            <pre id="advancedCommandStatus" class="tool-output">高级命令通过 /drones/{id}/command 发送。</pre>
+          </div>
+          <div class="control-card editor-card">
+            <div class="card-heading-row">
+              <h3 id="editorTitle">场景编辑</h3>
+              <button id="editModeToggle">编辑</button>
+            </div>
+            <div class="editor-actions">
+              <button id="addDrone" disabled>加无人机</button>
+              <button id="addTarget" disabled>加目标</button>
+              <button id="addObstacle" disabled>加障碍</button>
+              <button id="editMoveSelected" disabled>移动选中</button>
+              <button id="duplicateSelected" disabled>复制</button>
+              <button id="deleteSelected" class="danger" disabled>删除</button>
+              <button id="cycleSelection" disabled>Selection</button>
+              <button id="snapToGridToggle" disabled>Snap to Grid</button>
+            </div>
+            <div id="editForm" class="edit-form hidden">
+              <label>
+                <span id="editNameLabel">名称</span>
+                <input id="editName" type="text" />
+              </label>
+              <label data-edit-field="model">
+                <span id="editModelLabel">型号</span>
+                <input id="editModel" type="text" />
+              </label>
+              <label data-edit-field="type">
+                <span id="editTypeLabel">类型</span>
+                <select id="editType"></select>
+              </label>
+              <label data-edit-field="status">
+                <span id="editStatusLabel">状态</span>
+                <select id="editStatus"></select>
+              </label>
+              <div class="compact-inputs">
+                <label>
+                  <span id="editXLabel">X</span>
+                  <input id="editX" type="number" step="0.1" />
+                </label>
+                <label>
+                  <span id="editYLabel">Y</span>
+                  <input id="editY" type="number" step="0.1" />
+                </label>
+              </div>
+              <div class="compact-inputs">
+                <label>
+                  <span id="editZLabel">Z</span>
+                  <input id="editZ" type="number" step="0.1" />
+                </label>
+                <label>
+                  <span id="editRadiusLabel">半径</span>
+                  <input id="editRadius" type="number" min="0" step="0.1" />
+                </label>
+              </div>
+              <div class="compact-inputs" data-edit-field="drone-motion">
+                <label>
+                  <span id="editHeadingLabel">航向</span>
+                  <input id="editHeading" type="number" min="0" max="359" step="1" />
+                </label>
+                <label>
+                  <span id="editBatteryLabel">剩余电量</span>
+                  <input id="editBattery" type="number" min="0" max="100" step="1" />
+                </label>
+              </div>
+              <div class="compact-inputs" data-edit-field="drone-spec">
+                <label>
+                  <span id="editMaxSpeedLabel">最大速度</span>
+                  <input id="editMaxSpeed" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span id="editMaxAltitudeLabel">最大高度</span>
+                  <input id="editMaxAltitude" type="number" min="0" step="0.1" />
+                </label>
+              </div>
+              <div class="compact-inputs" data-edit-field="drone-spec">
+                <label>
+                  <span id="editBatteryCapacityLabel">电池容量</span>
+                  <input id="editBatteryCapacity" type="number" min="0" step="1" />
+                </label>
+                <label>
+                  <span id="editPerceivedRadiusLabel">感知半径</span>
+                  <input id="editPerceivedRadius" type="number" min="0" step="0.1" />
+                </label>
+              </div>
+              <label data-edit-field="drone-spec">
+                <span id="editTaskRadiusLabel">任务半径</span>
+                <input id="editTaskRadius" type="number" min="0" step="0.1" />
+              </label>
+              <div class="compact-inputs">
+                <label>
+                  <span id="editWidthLabel">宽度</span>
+                  <input id="editWidth" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span id="editLengthLabel">长度</span>
+                  <input id="editLength" type="number" min="0" step="0.1" />
+                </label>
+              </div>
+              <div class="compact-inputs" data-edit-field="target-motion">
+                <label>
+                  <span id="editMovingDurationLabel">移动时长</span>
+                  <input id="editMovingDuration" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span id="editChargeAmountLabel">充电量</span>
+                  <input id="editChargeAmount" type="number" min="0" step="0.1" />
+                </label>
+              </div>
+              <label data-edit-field="target-motion-mode">
+                <span id="editMovementModeLabel">移动模式</span>
+                <select id="editMovementMode"></select>
+              </label>
+              <div class="compact-inputs" data-edit-field="target-velocity">
+                <label>
+                  <span id="editVelocityXLabel">速度 X</span>
+                  <input id="editVelocityX" type="number" step="0.1" />
+                </label>
+                <label>
+                  <span id="editVelocityYLabel">速度 Y</span>
+                  <input id="editVelocityY" type="number" step="0.1" />
+                </label>
+              </div>
+              <label data-edit-field="target-velocity">
+                <span id="editVelocityZLabel">速度 Z</span>
+                <input id="editVelocityZ" type="number" step="0.1" />
+              </label>
+              <label data-edit-field="target-path">
+                <span id="editMovingPathLabel">移动路径</span>
+                <textarea id="editMovingPath" rows="4" spellcheck="false"></textarea>
+              </label>
+              <label data-edit-field="polygon-vertices">
+                <span id="editVerticesLabel">多边形顶点</span>
+                <textarea id="editVertices" rows="5" spellcheck="false"></textarea>
+              </label>
+              <label>
+                <span id="editHeightLabel">高度</span>
+                <input id="editHeight" type="number" min="0" step="0.1" />
+              </label>
+              <label>
+                <span id="editDescriptionLabel">描述</span>
+                <textarea id="editDescription" rows="2"></textarea>
+              </label>
+            </div>
+            <div class="editor-save-row">
+              <button id="saveSceneEdits" disabled>保存</button>
+              <button id="saveSceneAs" disabled>另存为</button>
+              <button id="discardSceneEdits" disabled>放弃</button>
+            </div>
+            <p id="editorStatus" class="command-status">编辑模式未开启。</p>
+          </div>
+        </aside>
+      </main>
+      <footer class="timeline">
+        <button id="liveToggle">Live</button>
+        <button id="trailModeToggle">Trail: 10</button>
+        <button id="labelToggle" class="active" title="Show or hide drone, target, and obstacle info panels">Show Labels</button>
+        <div class="label-size-control" aria-label="Label size">
+          <button id="labelSizeDown" title="Decrease label size ([)">Size-</button>
+          <span id="labelSizeValue">Label 100%</span>
+          <button id="labelSizeUp" title="Increase label size (])">Size+</button>
+        </div>
+        <span id="connectionStatus" class="status disconnected">Disconnected</span>
+        <label class="trail-length-control">
+          <span id="trailLengthText">Trail Length</span>
+          <input id="trailLength" type="range" min="2" max="200" value="80" />
+          <span id="trailLengthLabel">80</span>
+        </label>
+        <label class="scale-control">
+          <span id="droneScaleText">Drone</span>
+          <input id="droneScale" type="range" min="50" max="200" value="100" />
+          <span id="droneScaleLabel">100%</span>
+        </label>
+        <label class="scale-control">
+          <span id="targetScaleText">Target</span>
+          <input id="targetScale" type="range" min="50" max="200" value="100" />
+          <span id="targetScaleLabel">100%</span>
+        </label>
+        <label class="scale-control">
+          <span id="obstacleScaleText">Obstacle</span>
+          <input id="obstacleScale" type="range" min="50" max="200" value="100" />
+          <span id="obstacleScaleLabel">100%</span>
+        </label>
+        <label class="scale-control">
+          <span id="labelScaleText">Label</span>
+          <input id="labelScale" type="range" min="50" max="300" value="100" />
+          <span id="labelScaleLabel">100%</span>
+        </label>
+        <span id="statusSummary" class="status-summary">Drones/Targets/Obstacles: 0/0/0</span>
+        <span id="clickPosition" class="click-position">Click: (-, -, -)</span>
+        <div class="status-right">
+          <span id="activityStatus" class="hidden"></span>
+          <span id="zoomScaleStatus" class="zoom-scale-status">Scale: 100%</span>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

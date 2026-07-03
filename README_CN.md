@@ -4,7 +4,7 @@
 
 🌐 语言： [English](README.md) | **中文**
 
-[📄 论文](https://arxiv.org/abs/2606.31073) | [🌐 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
+[📄 论文](https://arxiv.org/abs/2606.31073) | [🏠 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
 
 MultiUAV-Plat 是一个轻量级开源仿真平台与测评基准，用于研究 LLM agent 如何在受限 API 和局部观测条件下，对多无人机任务进行规划、执行、观察与验证。
 
@@ -29,18 +29,20 @@ MultiUAV-Plat 是一个轻量级开源仿真平台与测评基准，用于研究
 
 论文资源、可视化介绍、下载入口和 leaderboard 更新可访问 [MultiUAV-Plat 项目主页](https://zhangsheng93.github.io/multiuavweb/)。
 
-MultiUAV-Plat 主要包含三个开源组成部分：
+MultiUAV-Plat 主要包含三个研究贡献：
 
 - **MultiUAV-Plat platform**：RESTful 多无人机仿真环境，支持 agent-facing observations、角色权限、会话管理和可选 2D/3D 可视化。
 - **MultiUAV-Plat Benchmark**：用于可复现实验的可执行多无人机任务基准，包含自然语言任务与隐藏验证检查。
 - **MultiUAV-Agent Workflow**：面向多无人机规划、执行、验证与重规划的任务特定工作流，本仓库中以 Agent4Drone 作为参考实现。
+
+本仓库还包含 **MultiUAV-Plat Web 3D Viewer**，这是一个独立的 Three.js/Vite 任务三维可视化查看器，由 [@Damonhellokitty](https://github.com/Damonhellokitty) 贡献。
 
 ## 🧭 主要特性
 
 - 🛰️ 面向任务级 UAV 控制、感知、会话管理和验证的 RESTful APIs。
 - 🔐 基于角色的访问控制与 agent-facing observations，避免 agent 直接访问特权仿真状态。
 - ✅ 隐藏任务验证器，用于可复现的闭环测评。
-- 🗺️ 可选 2D/3D 可视化，用于检查任务状态和 UAV 执行过程。
+- 🗺️ 支持 2D 和 3D 可视化：2D 视图适合快速查看任务全局状态和编辑场景，3D 视图适合沉浸式检查 UAV 轨迹、高度、覆盖区域、目标和障碍物。
 - 🎛️ GUI controller 支持会话创建、编辑、导入/导出和监控。
 - 🤖 MultiUAV-Agent Workflow 覆盖 observation、memory、task understanding、planning、execution、verification 和 replanning，Agent4Drone 是其参考实现。
 - 📊 Benchmark 覆盖 Target Assignment、Area Search、Area Assignment and Patrol 三类场景。
@@ -52,6 +54,7 @@ server/       主仿真服务端与 REST API
 controller/   GUI/session controller
 agent4drone/  基于 LLM 的 UAV agent 框架与 agent API service
 benchmark/    测评基准会话和场景资源
+view3d/       基于 Web 的 3D 任务可视化查看器
 ```
 
 每个组件都包含更详细的独立说明文档。
@@ -116,7 +119,27 @@ python main.py
 
 controller 会连接本地 server，并提供会话管理、场景编辑、导入/导出和监控工具。
 
-### 3. 运行 Agent4Drone
+### 3. 启动 Web 3D viewer（可选）
+
+请先启动仿真 server。Viewer 的安装、backend mode、demo mode、配置、构建和测试说明见 [view3d README](view3d/README.md)。
+
+```bash
+cd view3d
+npm install
+npm run dev
+```
+
+默认访问地址：
+
+- Web 3D Viewer: `http://127.0.0.1:5173`
+
+`npm run dev` 会通过 `GET /sessions/current/data` 从本地 server 读取实时任务数据。如果只想在无 server 的情况下查看前端 demo，可以使用：
+
+```bash
+npm run dev:demo
+```
+
+### 4. 运行 Agent4Drone
 
 Agent4Drone 会调用外部 LLM backend，因此启动前需要提供你自己的大模型服务 API key。你可以在本地编辑 `llm_settings.json`，也可以导出 `OPENAI_API_KEY` 或 `LLM_API_KEY` 等环境变量。
 

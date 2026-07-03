@@ -4,7 +4,7 @@
 
 🌐 Language: **English** | [中文](README_CN.md)
 
-[📄 Paper](https://arxiv.org/abs/2606.31073) | [🌐 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
+[📄 Paper](https://arxiv.org/abs/2606.31073) | [🏠 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
 
 MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark for studying LLM agents that plan, act, observe, and verify multi-UAV missions through restricted APIs and partial local perception.
 
@@ -29,18 +29,20 @@ Large language models provide a promising interface for high-level robotic task 
 
 For paper resources, visual summaries, downloads, and leaderboard updates, visit the [MultiUAV-Plat project website](https://zhangsheng93.github.io/multiuavweb/).
 
-MultiUAV-Plat addresses this gap with three open-source components:
+MultiUAV-Plat addresses this gap with three main research contributions:
 
 - **MultiUAV-Plat platform**: a RESTful multi-UAV simulation environment with agent-facing observations, role-based access, session management, and optional 2D/3D visualization.
 - **MultiUAV-Plat Benchmark**: a reproducible benchmark of executable multi-UAV missions with natural-language tasks and hidden validation checks.
 - **MultiUAV-Agent Workflow**: a task-specific workflow for multi-UAV planning, execution, verification, and replanning, implemented in this repository as Agent4Drone.
+
+The public repository also includes **MultiUAV-Plat Web 3D Viewer**, a standalone Three.js/Vite viewer for live mission visualization, contributed by [@Damonhellokitty](https://github.com/Damonhellokitty).
 
 ## 🧭 Key Features
 
 - 🛰️ RESTful APIs for mission-level UAV control, sensing, session management, and validation.
 - 🔐 Role-based access control and agent-facing observations that prevent privileged simulator access.
 - ✅ Hidden task validators for reproducible closed-loop evaluation.
-- 🗺️ Optional 2D and 3D visualization for inspecting mission state and UAV execution.
+- 🗺️ 2D and 3D visualization: 2D views support fast mission overview and scenario editing, while the 3D viewer provides immersive inspection of UAV trajectories, altitude, coverage, targets, and obstacles.
 - 🎛️ GUI controller for session creation, editing, import/export, and monitoring.
 - 🤖 MultiUAV-Agent Workflow covering observation, memory, task understanding, planning, execution, verification, and replanning, with Agent4Drone as the reference implementation.
 - 📊 Benchmark scenarios covering Target Assignment, Area Search, and Area Assignment and Patrol.
@@ -52,6 +54,7 @@ server/       Main simulation server and REST API
 controller/   GUI/session controller
 agent4drone/  LLM-based UAV agent framework and agent API service
 benchmark/    Benchmark sessions and scenario assets
+view3d/       Web-based 3D mission visualization viewer
 ```
 
 Each component includes its own documentation for deeper usage details.
@@ -116,7 +119,27 @@ python main.py
 
 The controller connects to the local server and provides session management, scenario editing, import/export, and monitoring tools.
 
-### 3. Run Agent4Drone
+### 3. Launch the Web 3D viewer (optional)
+
+Start the simulation server first. For viewer setup, backend mode, demo mode, configuration, build, and test details, see the [view3d README](view3d/README.md).
+
+```bash
+cd view3d
+npm install
+npm run dev
+```
+
+Default viewer URL:
+
+- Web 3D Viewer: `http://127.0.0.1:5173`
+
+`npm run dev` reads live mission data from the local server through `GET /sessions/current/data`. For frontend-only demo mode without a running server, use:
+
+```bash
+npm run dev:demo
+```
+
+### 4. Run Agent4Drone
 
 Agent4Drone calls an external LLM backend, so you need to provide your own model-provider API key before starting it. You can either edit `llm_settings.json` locally or export an environment variable such as `OPENAI_API_KEY` or `LLM_API_KEY`.
 
