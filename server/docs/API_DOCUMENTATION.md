@@ -47,7 +47,7 @@ You can customize the host and port using command-line arguments:
 ```bash
 python main.py --host 0.0.0.0 --port 8080
 
-# Override the per-session stored request-history retention
+# Override the current-session stored request-history retention
 python main.py --api-only --request-history-limit 10000
 ```
 
@@ -1248,16 +1248,19 @@ curl -X GET "http://localhost:8000/sessions/current/command-history?limit=50"
   - `GET /sessions/current/request-history`: AGENT, SYSTEM, or ADMIN.
   - `GET /sessions/{session_id}/request-history`: SYSTEM or ADMIN.
 - Query Parameters:
-  - `limit` (integer, optional): Maximum number of recent requests to return (default and maximum: `1000`).
+  - `limit` (integer, optional): Maximum number of recent requests to return. If omitted, all retained request-history records are returned.
 - AGENT callers should send a stable non-secret `X-Agent-ID` header. If omitted, AGENT requests are attributed to `default_agent`.
-- AGENT callers can retrieve only current-session request history records from AGENT-authenticated requests with the same `agent_id`. SYSTEM and ADMIN callers receive unfiltered request history.
-- The server stores up to `5000` records per session by default. This retention is configurable at startup with `--request-history-limit`; it is separate from the endpoint's 1000-record response cap.
+- AGENT callers can retrieve only current-session request history records from AGENT-authenticated requests with the same `agent_id`. SYSTEM and ADMIN callers receive unfiltered request history for sessions that still have runtime history.
+- The server stores request history only for the current session. Non-current sessions discard request history by default, and switching the current session clears request history from all sessions except the newly current one.
+- The server stores up to `5000` current-session records by default. This retention is configurable at startup with `--request-history-limit`; it bounds how many records can be returned when `limit` is omitted.
 - Response: `{ "request_history": [ ... ] }` in chronological order.
 - Records are associated with the session active after each response completes. Requests made without an active session are not added to session history.
 - Request history is runtime-only. It is not included in session objects, JSON exports, imports, or restores, and is lost when the process restarts.
 - Session reset clears the runtime request history.
+- `GET /sessions/current/data` is not recorded in request history.
 - Calls to these endpoints are recorded after their responses are produced, with `response_body: null`, so they appear in the next query without recursively embedding prior history.
-- Request-history endpoint response bodies are intentionally omitted from structured API logs and session request-history records for performance and recursion safety.
+- Structured API logs do not store full response bodies. They record `response_size_bytes`, `response_body_type`, and `response_body_summary` instead. Large response paths such as session-data endpoints, screenshot endpoints, and request-history endpoints omit response body capture.
+- Request-history endpoint response bodies are intentionally omitted from session request-history records for performance and recursion safety.
 
 Each record has this shape:
 
@@ -3739,7 +3742,9 @@ curl -X GET "http://localhost:8000/targets/type/waypoint"
 
 #### UI Rendering Notes (Targets)
 - `circle`: Rendered filled with a thin white outline; selection uses a small rectangular indicator centered on the target.
-- `polygon`: Rendered filled with a white outline; selection highlights the polygon boundary with an expanded margin around the shape for clarity. Labels render outside the top-right boundary.
+- `polygon`: Rendered filled with a white outline; selection highlights the polygon boundary with an expanded margin around the shape for clarity. Labels render outside the top-right boundary, and the details panel omits radius while listing numbered vertex coordinates under `Vertices: <target name>`.
+- Selected polygon obstacles also list numbered vertex coordinates in the details panel.
+- Selected drones, targets, and obstacles are highlighted with a yellow ring in the mini-map.
 
 ## Waypoint API
 

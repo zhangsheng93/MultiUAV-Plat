@@ -122,6 +122,7 @@ class SessionController:
             # Set as current session and activate it only if no other session is active
             self.current_session_id = session.id
             session.update_status(SessionStatus.ACTIVE)
+            self._discard_non_current_request_history()
 
             # Clear existing data from controllers and load session data
             self._clear_all_data()
@@ -148,6 +149,39 @@ class SessionController:
         self.request_history_limit = normalized_limit
         for session in self.sessions.values():
             session.set_request_history_limit(normalized_limit)
+
+    def add_request_to_history(
+        self,
+        session_id: str,
+        request_record: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Add a request record only for the current active session."""
+        if session_id != self.current_session_id:
+            return None
+
+        session = self.sessions.get(session_id)
+        if session is None:
+            return None
+
+        return session.add_request_to_history(request_record)
+
+    def clear_request_history(self, session_id: str) -> Optional[int]:
+        """Clear runtime request history for one session."""
+        session = self.sessions.get(session_id)
+        if session is None:
+            return None
+
+        cleared_count = len(session.request_history)
+        session.request_history = []
+        session.last_updated = time.time()
+        return cleared_count
+
+    def _discard_non_current_request_history(self) -> None:
+        """Discard request history for every non-current session."""
+        for session_id, session in self.sessions.items():
+            if session_id != self.current_session_id and session.request_history:
+                session.request_history = []
+                session.last_updated = time.time()
     
     def get_all_sessions(self) -> List[Dict[str, Any]]:
         """Get all sessions"""
@@ -241,6 +275,7 @@ class SessionController:
         self.current_session_id = session_id
         session = self.sessions[session_id]
         session.update_status(SessionStatus.ACTIVE, update_timestamp=False)
+        self._discard_non_current_request_history()
 
         # Load session data into global controllers
         self._load_session_data_to_controllers(session)

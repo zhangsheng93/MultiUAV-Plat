@@ -84,7 +84,7 @@ A comprehensive drone control and simulation system featuring a RESTful API buil
    # Enable UI drone controls, including Take Off/Land and map-click movement
    python main.py --ui --ui-drone-control
 
-   # Retain up to 10,000 HTTP request-history records per session
+   # Retain up to 10,000 HTTP request-history records for the current session
    python main.py --api-only --request-history-limit 10000
    ```
 
@@ -149,6 +149,7 @@ map-click movement for selected flying drones.
 | **Left Click on Map** | Send selected drone to clicked location when `--ui-drone-control` is enabled |
 | **Mouse Wheel** | Zoom in/out on the map |
 | **Arrow Keys** | Pan the map view |
+| **About Button** | Show version, copyright, license, paper, project, and website information with clickable links; click outside to close |
 | **R Key** | Refresh all data from API server |
 | **ESC Key** | Exit the application |
 
@@ -461,6 +462,7 @@ Supported CLI options are the same as when running from source:
 # Custom host and port
 ./dist/MultiUAV-Plat.Server.v0.xx --host 0.0.0.0 --port 8080
 
+# Retain up to 10,000 HTTP request-history records for the current session
 ./dist/MultiUAV-Plat.Server.v0.xx --api-only --request-history-limit 10000
 ```
 

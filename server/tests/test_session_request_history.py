@@ -1,7 +1,9 @@
+import logging
 import time
 import unittest
 import uuid
 from datetime import datetime
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -14,6 +16,7 @@ from api.server import (
     drone_controller,
     session_controller,
 )
+from config.logging_config import log_api_request
 from models.drone import DroneCommand
 from models.session import Session
 
@@ -38,7 +41,7 @@ class SessionRequestHistoryTests(unittest.TestCase):
         self.session_id = self._create_session("current")
         session_controller.set_current_session(self.session_id)
         self.session = session_controller.sessions[self.session_id]
-        self.session.request_history = []
+        session_controller.clear_request_history(self.session_id)
 
     def tearDown(self):
         for session_id in self.created_session_ids:
@@ -244,7 +247,7 @@ class SessionRequestHistoryTests(unittest.TestCase):
             DroneCommand.TAKE_OFF,
             {"altitude": 10.0},
         )
-        self.session.request_history = []
+        session_controller.clear_request_history(self.session_id)
 
         response = self.client.post(
             f"/drones/{drone['id']}/command/move_to",
@@ -372,11 +375,103 @@ class SessionRequestHistoryTests(unittest.TestCase):
                 f"/sessions/{self.session_id}/request-history"
             )
         )
+        self.assertTrue(
+            RequestLoggingMiddleware.should_skip_body_logging(
+                "/sessions/current/data",
+                method="GET",
+            )
+        )
+        self.assertTrue(
+            RequestLoggingMiddleware.should_skip_body_logging(
+                f"/sessions/{self.session_id}/data",
+                method="GET",
+            )
+        )
+        self.assertTrue(
+            RequestLoggingMiddleware.should_skip_body_logging(
+                "/sessions/current",
+                method="GET",
+                query_params={"data": "true"},
+            )
+        )
+        self.assertTrue(
+            RequestLoggingMiddleware.should_skip_body_logging(
+                f"/sessions/{self.session_id}",
+                method="GET",
+                query_params={"data": "true"},
+            )
+        )
         self.assertFalse(
             RequestLoggingMiddleware.should_skip_body_logging(
                 "/sessions/current"
             )
         )
+
+    def test_response_body_summary_classifies_omitted_large_bodies(self):
+        self.assertEqual(
+            RequestLoggingMiddleware.response_body_summary(
+                "/sessions/current/data",
+                method="GET",
+            ),
+            "session_data_omitted",
+        )
+        self.assertEqual(
+            RequestLoggingMiddleware.response_body_summary(
+                "/sessions/current/request-history",
+            ),
+            "request_history_omitted",
+        )
+        self.assertEqual(
+            RequestLoggingMiddleware.response_body_summary(
+                "/sessions/current/screenshot",
+                content_type="image/png",
+            ),
+            "binary_omitted",
+        )
+
+    def test_structured_api_log_omits_full_response_body(self):
+        records = []
+
+        class CapturingLogger:
+            name = "uav_system.api"
+
+            def makeRecord(self, *args, **kwargs):
+                return logging.getLogger(self.name).makeRecord(*args, **kwargs)
+
+            def handle(self, record):
+                records.append(record)
+
+        with patch("config.logging_config.get_logger", return_value=CapturingLogger()):
+            log_api_request(
+                method="GET",
+                path="/version",
+                status_code=200,
+                duration_ms=1.2,
+                client_ip="127.0.0.1",
+                response_size_bytes=123,
+                response_body_type="application/json",
+                response_body_summary="omitted",
+            )
+
+        self.assertEqual(len(records), 1)
+        extra_data = records[0].extra_data
+        self.assertNotIn("response_body", extra_data)
+        self.assertEqual(extra_data["response_size_bytes"], 123)
+        self.assertEqual(extra_data["response_body_type"], "application/json")
+        self.assertEqual(extra_data["response_body_summary"], "omitted")
+
+    def test_current_session_data_request_is_not_recorded_in_request_history(self):
+        self.session.request_history = [self._request_record(1)]
+
+        response = self.client.get(
+            "/sessions/current/data",
+            headers=self.system_headers,
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertNotIn("request_history", response.json()["history"])
+        self.assertEqual(len(self.session.request_history), 1)
+        self.assertEqual(self.session.request_history[0]["path"], "/test/1")
 
     def test_recent_request_history_helper_slices_before_normalizing(self):
         records = [self._request_record(index) for index in range(10)]
@@ -414,20 +509,26 @@ class SessionRequestHistoryTests(unittest.TestCase):
             f"/sessions/{other_session_id}/request-history",
         )
 
-    def test_limit_defaults_and_caps_at_1000(self):
+    def test_limit_defaults_to_all_and_explicit_limit_slices(self):
         self.session.request_history = [
-            self._request_record(index % 60) for index in range(1000)
+            self._request_record(index % 60) for index in range(1005)
         ]
 
+        default_response = self.client.get(
+            "/sessions/current/request-history",
+            headers=self.system_headers,
+        )
         response = self.client.get(
             "/sessions/current/request-history",
-            params={"limit": 5000},
+            params={"limit": 1002},
             headers=self.system_headers,
         )
 
+        self.assertEqual(default_response.status_code, 200, default_response.text)
+        self.assertEqual(len(default_response.json()["request_history"]), 1005)
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(len(response.json()["request_history"]), 1000)
-        self.assertEqual(len(self.session.request_history), 1001)
+        self.assertEqual(len(response.json()["request_history"]), 1002)
+        self.assertEqual(len(self.session.request_history), 1007)
 
     def test_legacy_request_history_records_default_agent_id_to_none(self):
         legacy_record = self._request_record(1)
@@ -778,7 +879,6 @@ class SessionRequestHistoryTests(unittest.TestCase):
 
         requests = [
             ("/sessions/current", {"data": "true"}),
-            ("/sessions/current/data", None),
             (f"/sessions/{self.session_id}", {"data": "true"}),
             (f"/sessions/{self.session_id}/data", None),
         ]
@@ -793,10 +893,7 @@ class SessionRequestHistoryTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.text)
                 self.assertNotIn("request_history", response.json()["history"])
                 recorded_response = self.session.request_history[-1]["response_body"]
-                self.assertNotIn(
-                    "request_history",
-                    recorded_response["history"],
-                )
+                self.assertIsNone(recorded_response)
 
     def test_session_history_response_schema_omits_request_history(self):
         schema = app.openapi()["components"]["schemas"]["SessionHistory"]
@@ -841,8 +938,8 @@ class SessionRequestHistoryTests(unittest.TestCase):
         other_session_id = self._create_session("switch-target")
         old_session = self.session
         other_session = session_controller.sessions[other_session_id]
-        old_session.request_history = []
-        other_session.request_history = []
+        session_controller.clear_request_history(old_session.id)
+        session_controller.clear_request_history(other_session.id)
 
         response = self.client.post(
             f"/sessions/{other_session_id}/set-current",

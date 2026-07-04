@@ -292,10 +292,12 @@ def log_api_request(
     client_ip: str,
     user_role: Optional[str] = None,
     request_body: Optional[Dict[str, Any]] = None,
-    response_body: Optional[Any] = None,
     session_id: Optional[str] = None,
     error: Optional[str] = None,
-    query_params: Optional[Dict[str, Any]] = None
+    query_params: Optional[Dict[str, Any]] = None,
+    response_size_bytes: Optional[int] = None,
+    response_body_type: str = "unknown",
+    response_body_summary: str = "omitted",
 ) -> None:
     """Log API request with structured data for analysis
 
@@ -306,11 +308,13 @@ def log_api_request(
         duration_ms: Request processing duration in milliseconds
         client_ip: Client IP address
         user_role: User role (USER, SYSTEM, ADMIN)
-        request_body: Request body data (for POST/PUT/DELETE) - NO TRUNCATION
-        response_body: Response body data - NO TRUNCATION
+        request_body: Request body data (for POST/PUT/DELETE)
         session_id: Current session ID
         error: Error message if request failed
         query_params: Query parameters from URL (e.g., ?data=True)
+        response_size_bytes: Response size from Content-Length or captured body length
+        response_body_type: Normalized response content type
+        response_body_summary: Short reason full response body is omitted
     """
     logger = get_logger("uav_system.api")
 
@@ -320,6 +324,9 @@ def log_api_request(
         "status_code": status_code,
         "duration_ms": round(duration_ms, 2),
         "client_ip": client_ip,
+        "response_size_bytes": response_size_bytes,
+        "response_body_type": response_body_type,
+        "response_body_summary": response_body_summary,
     }
 
     if user_role:
@@ -335,10 +342,6 @@ def log_api_request(
     # Include full request body - NO TRUNCATION
     if request_body is not None:
         extra_data["request_body"] = request_body
-
-    # Include full response body - NO TRUNCATION
-    if response_body is not None:
-        extra_data["response_body"] = response_body
 
     if error:
         extra_data["error"] = error

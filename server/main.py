@@ -41,7 +41,7 @@ from ui.interface import start_ui, DroneUI
 from models.session import DEFAULT_REQUEST_HISTORY_LIMIT
 
 # Version configuration
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 
 def positive_int(value: str) -> int:
@@ -87,7 +87,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         type=positive_int,
         default=DEFAULT_REQUEST_HISTORY_LIMIT,
         help=(
-            "Maximum request-history records retained per session "
+            "Maximum request-history records retained for the current session "
             f"(default: {DEFAULT_REQUEST_HISTORY_LIMIT})"
         ),
     )
@@ -229,7 +229,7 @@ def main():
     session_controller.set_request_history_limit(args.request_history_limit)
     logger.info(
         "Request history retention: "
-        f"{args.request_history_limit} records per session"
+        f"{args.request_history_limit} records for the current session"
     )
     
     # Start the simulation thread for targets and environment

@@ -22,8 +22,10 @@ import pygame.gfxdraw as gfxdraw
 import sys
 import os
 import math
+import re
 import threading
 import time
+import webbrowser
 from typing import Dict, List, Tuple, Optional
 
 # --- macOS App Reopen Fix ---
@@ -106,6 +108,8 @@ STATUS_WARN = (255, 165, 0)
 STATUS_ERROR = (255, 0, 0)
 CYAN = (0, 255, 255)
 GRAY = (128, 128, 128)
+LINK_COLOR = (0, 90, 180)
+LINK_HOVER_COLOR = (0, 120, 255)
 
 # Controls
 BUTTON_BG = (235, 235, 240)
@@ -130,6 +134,7 @@ STATUS_BAR_BG = (235, 235, 240)
 
 # Selection highlight
 SELECT_BORDER = (160, 160, 160)
+MINIMAP_SELECTION_HIGHLIGHT = (255, 255, 0)
 
 # Drone path trail color (very light blue)
 DRONE_PATH_TRAIL_COLOR = (173, 216, 230)  # Light blue
@@ -161,6 +166,35 @@ OBSTACLE_COLORS = {
     "ellipse": (82, 82, 122),    # Dark slate blue
     "polygon": (105, 105, 105),  # Dim gray
 }
+
+
+def get_app_version() -> str:
+    """Read the application version from main.py without importing main."""
+    for module_name in ("__main__", "main"):
+        module = sys.modules.get(module_name)
+        version = getattr(module, "VERSION", None) if module else None
+        if isinstance(version, str) and version:
+            return version
+
+    candidate_paths = []
+    if getattr(sys, "frozen", False):
+        candidate_paths.append(os.path.join(getattr(sys, "_MEIPASS", ""), "main.py"))
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidate_paths.append(os.path.join(project_root, "main.py"))
+
+    for main_path in candidate_paths:
+        if not main_path:
+            continue
+        try:
+            with open(main_path, "r", encoding="utf-8") as main_file:
+                match = re.search(r'^VERSION\s*=\s*"([^"]+)"', main_file.read(), re.MULTILINE)
+            if match:
+                return match.group(1)
+        except OSError:
+            continue
+
+    return "unknown"
+
 
 def format_enum_value(value: str) -> str:
     """Format enum values to be more human-readable.
@@ -331,6 +365,12 @@ class DroneUI:
                 "text": "Hide Labels",
                 "action": self.toggle_object_labels,
                 "rect": pygame.Rect(self._scale_px(450), self._scale_px(20), self._scale_px(130), self._scale_px(30))
+            },
+            {
+                "role": "about",
+                "text": "About",
+                "action": self._show_about_dialog,
+                "rect": pygame.Rect(self._scale_px(590), self._scale_px(20), self._scale_px(90), self._scale_px(30))
             }
         ])
         
@@ -568,6 +608,122 @@ class DroneUI:
                     label_surf,
                     (rect.centerx - label_surf.get_width() // 2, rect.centery - label_surf.get_height() // 2)
                 )
+
+            pygame.display.flip()
+            self.clock.tick(30)
+
+    def _show_about_dialog(self):
+        """Show application metadata, copyright, and project links."""
+        dialog_w, dialog_h = self._scale_px(760), self._scale_px(430)
+        dialog_rect = pygame.Rect(
+            (SCREEN_WIDTH - dialog_w) // 2,
+            (SCREEN_HEIGHT - dialog_h) // 2,
+            dialog_w,
+            dialog_h
+        )
+        content_x = dialog_rect.x + self._scale_px(28)
+        content_y = dialog_rect.y + self._scale_px(78)
+        row_gap = self._scale_px(27)
+        label_w = self._scale_px(92)
+        ok_button = pygame.Rect(
+            dialog_rect.centerx - self._scale_px(55),
+            dialog_rect.bottom - self._scale_px(62),
+            self._scale_px(110),
+            self._scale_px(38),
+        )
+        background = self.screen.copy()
+        version = get_app_version()
+        info_rows = [
+            ("App", "MultiUAV-Plat Server System"),
+            ("Version", version),
+            ("Description", "Multi-Drone Coordinative Planning Platform"),
+            ("Copyright", "Copyright (C) 2026 MultiUAV-Plat Server System Project"),
+            ("License", "Licensed under GNU GPL v3"),
+            ("Paper", "https://arxiv.org/abs/2606.31073"),
+            ("Project", "https://github.com/zhangsheng93/MultiUAV-Plat"),
+            ("Website", "https://zhangsheng93.github.io/multiuavweb/"),
+        ]
+        link_rects = []
+
+        while True:
+            mouse_pos = pygame.mouse.get_pos()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                if event.type == pygame.KEYDOWN:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_KP_ENTER):
+                        return
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if ok_button.collidepoint(event.pos):
+                        return
+                    link_clicked = False
+                    for rect, url in link_rects:
+                        if rect.collidepoint(event.pos):
+                            try:
+                                webbrowser.open(url)
+                            except Exception as e:
+                                print(f"Warning: Could not open URL {url}: {e}", file=sys.stderr)
+                            link_clicked = True
+                            break
+                    if not link_clicked and not dialog_rect.collidepoint(event.pos):
+                        return
+
+            self.screen.blit(background, (0, 0))
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 130))
+            self.screen.blit(overlay, (0, 0))
+
+            pygame.draw.rect(self.screen, WHITE, dialog_rect, border_radius=self._scale_px(10))
+            pygame.draw.rect(self.screen, PANEL_BORDER, dialog_rect, self._scale_px(2), border_radius=self._scale_px(10))
+
+            title = self.large_font.render("About MultiUAV-Plat", True, TEXT_COLOR)
+            self.screen.blit(title, (content_x, dialog_rect.y + self._scale_px(26)))
+
+            current_link_rects = []
+            for index, (label, value) in enumerate(info_rows):
+                row_y = content_y + index * row_gap
+                label_surf = self.details_font.render(f"{label}:", True, TICK_COLOR)
+                value_pos = (content_x + label_w, row_y)
+                value_rect = None
+                is_link = value.startswith("https://")
+                if is_link:
+                    value_rect = self.details_font.render(value, True, LINK_COLOR).get_rect(topleft=value_pos)
+                    current_link_rects.append((value_rect, value))
+                is_hovered_link = bool(value_rect and value_rect.collidepoint(mouse_pos))
+                value_color = LINK_HOVER_COLOR if is_hovered_link else (LINK_COLOR if is_link else TEXT_COLOR)
+                value_surf = self.details_font.render(value, True, value_color)
+                self.screen.blit(label_surf, (content_x, row_y))
+                self.screen.blit(value_surf, value_pos)
+                if is_hovered_link:
+                    underline_y = value_rect.bottom + self._scale_px(1)
+                    pygame.draw.line(
+                        self.screen,
+                        LINK_HOVER_COLOR,
+                        (value_rect.left, underline_y),
+                        (value_rect.right, underline_y),
+                        self._scale_px(1),
+                    )
+            link_rects = current_link_rects
+
+            hovered = ok_button.collidepoint(mouse_pos)
+            pygame.draw.rect(
+                self.screen,
+                ACTIVE_BUTTON_BG if hovered else BUTTON_BG,
+                ok_button,
+                border_radius=self._scale_px(8)
+            )
+            pygame.draw.rect(
+                self.screen,
+                ACTIVE_BUTTON_BORDER if hovered else BUTTON_BORDER,
+                ok_button,
+                self._scale_px(2),
+                border_radius=self._scale_px(8)
+            )
+            ok_surf = self.font.render("OK", True, TEXT_COLOR)
+            self.screen.blit(
+                ok_surf,
+                (ok_button.centerx - ok_surf.get_width() // 2, ok_button.centery - ok_surf.get_height() // 2)
+            )
 
             pygame.display.flip()
             self.clock.tick(30)
@@ -933,23 +1089,36 @@ class DroneUI:
             if clipped.width > 0 and clipped.height > 0:
                 pygame.draw.rect(self.screen, STATUS_OK, clipped, 2)  # Green rectangle
 
+        def is_selected(obj_type: str, obj: Dict) -> bool:
+            obj_id = obj.get("id")
+            if obj_type == "drone":
+                return bool(self.selected_drone and obj_id == self.selected_drone.get("id"))
+            if obj_type == "target":
+                return bool(self.selected_target and obj_id == self.selected_target.get("id"))
+            if obj_type == "obstacle":
+                return bool(self.selected_obstacle and obj_id == self.selected_obstacle.get("id"))
+            return False
+
+        def draw_mini_point(obj_type: str, obj: Dict, color: Tuple[int, int, int]):
+            mx, my = to_mini(obj["position"]["x"], obj["position"]["y"])
+            pygame.draw.circle(self.screen, color, (mx, my), point_radius)
+            if is_selected(obj_type, obj):
+                pygame.draw.circle(self.screen, MINIMAP_SELECTION_HIGHLIGHT, (mx, my), point_radius + 4, 2)
+
         # Draw points for drones, targets, and obstacles
         point_radius = 3
         # Drones
         for d in self.drones:
-            mx, my = to_mini(d["position"]["x"], d["position"]["y"])
             color = DRONE_COLORS.get(d.get("status", "idle"), GRAY)
-            pygame.draw.circle(self.screen, color, (mx, my), point_radius)
+            draw_mini_point("drone", d, color)
         # Targets
         for t in self.targets:
-            mx, my = to_mini(t["position"]["x"], t["position"]["y"])
             color = TARGET_COLORS.get(t.get("type", "fixed"), WHITE)
-            pygame.draw.circle(self.screen, color, (mx, my), point_radius)
+            draw_mini_point("target", t, color)
         # Obstacles (draw center point)
         for o in self.obstacles:
-            mx, my = to_mini(o["position"]["x"], o["position"]["y"])
             color = OBSTACLE_COLORS.get(o.get("type", "building"), GRAY)
-            pygame.draw.circle(self.screen, color, (mx, my), point_radius)
+            draw_mini_point("obstacle", o, color)
 
     def handle_minimap_click(self, pos: Tuple[int, int]) -> bool:
         """If click is inside the minimap content, recenter main view to that world point.
@@ -1649,6 +1818,20 @@ class DroneUI:
 
         return used
 
+    def _format_polygon_vertex_details(self, vertices: List[Dict], fallback_z: float) -> List[str]:
+        """Format polygon vertex coordinates for the details panel."""
+        details = []
+        fallback_z = 0.0 if fallback_z is None else fallback_z
+        for index, vertex in enumerate(vertices, start=1):
+            x = vertex.get("x", 0.0)
+            y = vertex.get("y", 0.0)
+            z = vertex.get("z", fallback_z)
+            x = 0.0 if x is None else x
+            y = 0.0 if y is None else y
+            z = fallback_z if z is None else z
+            details.append(f"{index}. ({float(x):.1f}, {float(y):.1f}, {float(z):.1f})")
+        return details
+
     def draw_details_panel(self):
         """Draw details panel for selected drone, target, or obstacle"""
         if not self.selected_drone and not self.selected_target and not self.selected_obstacle:
@@ -1714,9 +1897,10 @@ class DroneUI:
                 f"Position: ({self.selected_target['position']['x']:.1f}, "
                 f"{self.selected_target['position']['y']:.1f}, "
                 f"{self.selected_target['position']['z']:.1f})",
-                f"Radius: {self.selected_target['radius']:.1f} m",
                 f"Description: {self.selected_target.get('description', 'N/A')}"
             ]
+            if self.selected_target['type'] != 'polygon':
+                details.insert(-1, f"Radius: {self.selected_target['radius']:.1f} m")
             
             # Add specific info for moving targets
             if self.selected_target['type'] == 'moving':
@@ -1756,7 +1940,12 @@ class DroneUI:
             if self.selected_target['type'] == 'polygon':
                 vertices = self.selected_target.get('vertices')
                 if vertices and isinstance(vertices, list):
-                    details.insert(-1, f"Vertices: {len(vertices)}")
+                    fallback_z = self.selected_target.get("position", {}).get("z", 0.0)
+                    vertex_details = [
+                        f"Vertices: {self.selected_target.get('name', 'N/A')}",
+                        *self._format_polygon_vertex_details(vertices, fallback_z),
+                    ]
+                    details[-1:-1] = vertex_details
         else:
             # Draw obstacle details
             title = self.details_title_font.render("Obstacle Details", True, TEXT_COLOR)
@@ -1776,7 +1965,9 @@ class DroneUI:
             if self.selected_obstacle['type'] == 'circle':
                 details.append(f"Radius: {self.selected_obstacle.get('radius', 0):.1f} m")
             elif self.selected_obstacle.get('vertices'):
-                details.append(f"Vertices: {len(self.selected_obstacle['vertices'])}")
+                fallback_z = self.selected_obstacle.get("position", {}).get("z", 0.0)
+                vertex_details = self._format_polygon_vertex_details(self.selected_obstacle['vertices'], fallback_z)
+                details[-1:-1] = vertex_details
         
         y_offset = 50
         line_gap = 4

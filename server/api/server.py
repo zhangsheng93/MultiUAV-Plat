@@ -217,9 +217,79 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     MAX_AGENT_ID_LENGTH = 128
 
     @staticmethod
-    def should_skip_body_logging(path: str) -> bool:
+    def _query_value_is_true(value: Any) -> bool:
+        """Return True when a query value represents an enabled flag."""
+        if isinstance(value, list):
+            return any(RequestLoggingMiddleware._query_value_is_true(item) for item in value)
+        return str(value).lower() in {"1", "true", "yes"}
+
+    @staticmethod
+    def is_session_data_path(path: str, query_params: Optional[Dict[str, Any]] = None) -> bool:
+        """Return True for session-data endpoints that can produce large payloads."""
+        if path == "/sessions/current/data":
+            return True
+        if path.startswith("/sessions/") and path.endswith("/data"):
+            return True
+
+        parts = path.strip("/").split("/")
+        if len(parts) == 2 and parts[0] == "sessions":
+            return RequestLoggingMiddleware._query_value_is_true(
+                (query_params or {}).get("data")
+            )
+        return False
+
+    @staticmethod
+    def should_skip_body_logging(
+        path: str,
+        method: str = "",
+        query_params: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """Check if we should skip response body capture for this path."""
-        return "/screenshot" in path or path.endswith("/request-history")
+        if "/screenshot" in path or path.endswith("/request-history"):
+            return True
+        return (
+            method.upper() == "GET"
+            and RequestLoggingMiddleware.is_session_data_path(path, query_params)
+        )
+
+    @staticmethod
+    def response_body_type(content_type: Optional[str]) -> str:
+        """Normalize a response Content-Type header for structured logs."""
+        if not content_type:
+            return "unknown"
+        return content_type.split(";", 1)[0].strip().lower() or "unknown"
+
+    @staticmethod
+    def response_body_summary(
+        path: str,
+        method: str = "",
+        query_params: Optional[Dict[str, Any]] = None,
+        content_type: Optional[str] = None,
+    ) -> str:
+        """Return a short reason instead of logging full response bodies."""
+        if path.endswith("/request-history"):
+            return "request_history_omitted"
+        if "/screenshot" in path:
+            return "binary_omitted"
+        if (
+            method.upper() == "GET"
+            and RequestLoggingMiddleware.is_session_data_path(path, query_params)
+        ):
+            return "session_data_omitted"
+        if RequestLoggingMiddleware.response_body_type(content_type).startswith("image/"):
+            return "binary_omitted"
+        return "omitted"
+
+    @staticmethod
+    def parse_content_length(value: Optional[str]) -> Optional[int]:
+        """Parse Content-Length for structured logs without forcing body capture."""
+        if value is None:
+            return None
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed >= 0 else None
 
     @staticmethod
     def should_omit_history_response_body(path: str) -> bool:
@@ -229,6 +299,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     @staticmethod
     def should_skip_session_history(path: str, method: str = "") -> bool:
         """Keep session request history empty after reset or explicit clear."""
+        if method.upper() == "GET" and path == "/sessions/current/data":
+            return True
         if path.endswith("/reset") and path.startswith("/sessions/"):
             return True
         return method.upper() == "DELETE" and path.endswith("/request-history")
@@ -297,6 +369,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Initialize variables
         request_body = None
         response_body = None
+        response_size_bytes = None
+        response_body_type = "unknown"
+        response_body_summary = "omitted"
         status_code = 500
         user_role = None
         session_id = None
@@ -316,10 +391,26 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Process request
             response = await call_next(request)
             status_code = response.status_code
+            response_size_bytes = self.parse_content_length(
+                response.headers.get("content-length")
+            )
+            response_body_type = self.response_body_type(
+                response.headers.get("content-type")
+            )
+            response_body_summary = self.response_body_summary(
+                path,
+                method=method,
+                query_params=query_params,
+                content_type=response.headers.get("content-type"),
+            )
 
             # Try to capture response body for non-streaming responses
             # Skip binary responses (images, PDFs, etc.) to avoid Content-Length issues
-            skip_body = self.should_skip_body_logging(path)
+            skip_body = self.should_skip_body_logging(
+                path,
+                method=method,
+                query_params=query_params,
+            )
 
             if path not in self.EXCLUDE_PATHS and not skip_body:
                 try:
@@ -327,6 +418,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     response_body_bytes = b""
                     async for chunk in response.body_iterator:
                         response_body_bytes += chunk
+                    if response_size_bytes is None:
+                        response_size_bytes = len(response_body_bytes)
 
                     # Parse response body if it's JSON
                     if response_body_bytes:
@@ -384,14 +477,14 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 and not self.should_skip_session_history(path, method)
                 and session_controller_ref
             ):
-                session_obj = session_controller_ref.get_session_ref(session_id)
-                if session_obj is not None:
+                if session_controller_ref.get_session_ref(session_id) is not None:
                     history_response_body = (
                         None
                         if self.should_omit_history_response_body(path)
                         else response_body
                     )
-                    session_obj.add_request_to_history(
+                    session_controller_ref.add_request_to_history(
+                        session_id,
                         {
                             "request_id": request_id,
                             "timestamp": request_timestamp,
@@ -411,7 +504,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                             "duration_sec": round(duration_ms / 1000, 6),
                             "response_body": self.sanitize_session_history_body(history_response_body),
                             "error": error_message,
-                        }
+                        },
                     )
 
             # Log the request (skip health check endpoint for cleaner logs)
@@ -424,10 +517,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     client_ip=client_ip,
                     user_role=user_role,
                     request_body=request_body,
-                    response_body=response_body,
                     session_id=session_id,
                     error=error_message,
-                    query_params=query_params or None
+                    query_params=query_params or None,
+                    response_size_bytes=response_size_bytes,
+                    response_body_type=response_body_type,
+                    response_body_summary=response_body_summary,
                 )
 
                 # Also log to access logger for human-readable format
@@ -3682,21 +3777,16 @@ def _get_recent_command_history(session_obj: Session, limit: int) -> List[Dict[s
 
 def _get_recent_request_history(
     session_obj: Session,
-    limit: int,
+    limit: Optional[int],
     agent_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Return the most recent request history entries, capped at 1000."""
-    capped_limit = max(0, min(limit, 1000))
-    if capped_limit == 0:
+    """Return recent request history entries, or all entries when limit is None."""
+    if limit is not None and limit <= 0:
         return []
 
     request_history = session_obj.request_history
     if agent_id is None:
-        selected = (
-            request_history[-capped_limit:]
-            if len(request_history) > capped_limit
-            else request_history
-        )
+        selected = request_history if limit is None else request_history[-limit:]
         return [
             session_obj.normalize_request_history_record(record)
             for record in selected
@@ -3710,7 +3800,7 @@ def _get_recent_request_history(
             and normalized.get("agent_id") == agent_id
         ):
             selected.append(normalized)
-            if len(selected) >= capped_limit:
+            if limit is not None and len(selected) >= limit:
                 break
 
     selected.reverse()
@@ -3719,9 +3809,9 @@ def _get_recent_request_history(
 
 def _clear_request_history_response(session_obj: Session) -> Dict[str, Any]:
     """Clear runtime request history and return a compact summary."""
-    cleared_count = len(session_obj.request_history)
-    session_obj.request_history = []
-    session_obj.last_updated = time.time()
+    cleared_count = session_controller.clear_request_history(session_obj.id)
+    if cleared_count is None:
+        cleared_count = 0
     return {
         "cleared": True,
         "session_id": session_obj.id,
@@ -3732,15 +3822,15 @@ def _clear_request_history_response(session_obj: Session) -> Dict[str, Any]:
 @app.get("/sessions/current/request-history", tags=["Session Tracking"])
 async def get_current_session_request_history(
     request: Request,
-    limit: int = 1000,
+    limit: Optional[int] = None,
     _role: UserRole = Depends(require_current_request_history_role),
 ):
     """
     Get HTTP request history for the current active session.
 
-    The history contains the latest 1000 session-associated requests. The
-    request that retrieves history is recorded after its response is produced
-    and therefore appears only in subsequent history queries.
+    The history contains all retained session-associated requests by default.
+    The request that retrieves history is recorded after its response is
+    produced and therefore appears only in subsequent history queries.
     """
     session_obj = session_controller.get_current_session_ref()
     if session_obj is None:
@@ -3762,7 +3852,7 @@ async def get_current_session_request_history(
 
 
 @app.get("/sessions/{session_id}/request-history", tags=["Session Tracking"])
-async def get_session_request_history(session_id: str, limit: int = 1000, _role: UserRole = Depends(require_system)):
+async def get_session_request_history(session_id: str, limit: Optional[int] = None, _role: UserRole = Depends(require_system)):
     """Get HTTP request history for a specific session."""
     session_obj = session_controller.get_session_ref(session_id)
     if session_obj is None:

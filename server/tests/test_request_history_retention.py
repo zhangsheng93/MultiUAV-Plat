@@ -2,7 +2,10 @@ import unittest
 
 from controllers.session_controller import SessionController
 from main import create_argument_parser
-from models.session import DEFAULT_REQUEST_HISTORY_LIMIT, Session
+from models.session import (
+    DEFAULT_REQUEST_HISTORY_LIMIT,
+    Session,
+)
 
 
 class RequestHistoryRetentionTests(unittest.TestCase):
@@ -48,7 +51,7 @@ class RequestHistoryRetentionTests(unittest.TestCase):
         )
         session = controller.sessions[session_data["id"]]
         for index in range(5):
-            session.add_request_to_history(self._record(index))
+            controller.add_request_to_history(session.id, self._record(index))
 
         self.assertEqual(session.max_request_history, 3)
         self.assertEqual(
@@ -58,15 +61,16 @@ class RequestHistoryRetentionTests(unittest.TestCase):
 
     def test_lowering_controller_limit_trims_existing_sessions(self):
         controller = SessionController(request_history_limit=5)
-        session = controller.create_session_from_dict(
+        session_data = controller.add_session(
             {
                 "id": "existing",
                 "name": "Existing",
+                "with_examples": False,
             }
         )
+        session = controller.sessions[session_data["id"]]
         for index in range(5):
-            session.add_request_to_history(self._record(index))
-        controller.sessions[session.id] = session
+            controller.add_request_to_history(session.id, self._record(index))
 
         controller.set_request_history_limit(2)
 
@@ -75,6 +79,97 @@ class RequestHistoryRetentionTests(unittest.TestCase):
         self.assertEqual(
             [record["request_id"] for record in session.request_history],
             ["request-3", "request-4"],
+        )
+
+    def test_controller_discards_request_history_for_non_current_sessions(self):
+        controller = SessionController(request_history_limit=10)
+        first_data = controller.add_session(
+            {
+                "id": "first",
+                "name": "First",
+                "with_examples": False,
+            }
+        )
+        second_data = controller.add_session(
+            {
+                "id": "second",
+                "name": "Second",
+                "with_examples": False,
+            }
+        )
+
+        controller.add_request_to_history(first_data["id"], self._record(0))
+        result = controller.add_request_to_history(second_data["id"], self._record(1))
+
+        first = controller.sessions[first_data["id"]]
+        second = controller.sessions[second_data["id"]]
+        self.assertIsNone(result)
+        self.assertEqual(
+            [record["request_id"] for record in first.request_history],
+            ["request-0"],
+        )
+        self.assertEqual(second.request_history, [])
+
+    def test_set_current_session_discards_previous_session_history(self):
+        controller = SessionController(request_history_limit=10)
+        first_data = controller.add_session(
+            {
+                "id": "first",
+                "name": "First",
+                "with_examples": False,
+            }
+        )
+        second_data = controller.add_session(
+            {
+                "id": "second",
+                "name": "Second",
+                "with_examples": False,
+            }
+        )
+
+        controller.add_request_to_history(first_data["id"], self._record(0))
+        controller.add_request_to_history(first_data["id"], self._record(1))
+        controller.set_current_session(second_data["id"])
+
+        first = controller.sessions[first_data["id"]]
+        second = controller.sessions[second_data["id"]]
+        self.assertEqual(first.request_history, [])
+        self.assertEqual(second.request_history, [])
+
+        controller.add_request_to_history(second_data["id"], self._record(2))
+        self.assertEqual(
+            [record["request_id"] for record in second.request_history],
+            ["request-2"],
+        )
+
+    def test_clear_history_for_non_current_session_stays_discarded(self):
+        controller = SessionController(request_history_limit=10)
+        first_data = controller.add_session(
+            {
+                "id": "first",
+                "name": "First",
+                "with_examples": False,
+            }
+        )
+        second_data = controller.add_session(
+            {
+                "id": "second",
+                "name": "Second",
+                "with_examples": False,
+            }
+        )
+        controller.add_request_to_history(first_data["id"], self._record(0))
+        controller.add_request_to_history(first_data["id"], self._record(1))
+        controller.set_current_session(second_data["id"])
+
+        self.assertEqual(controller.clear_request_history(first_data["id"]), 0)
+        self.assertIsNone(
+            controller.add_request_to_history(first_data["id"], self._record(2))
+        )
+
+        self.assertEqual(
+            controller.sessions[first_data["id"]].request_history,
+            [],
         )
 
     def test_restored_history_is_discarded_but_uses_controller_limit(self):

@@ -2,6 +2,19 @@
 
 All notable changes to this project should be documented in this file.
 
+## [0.4.1] - 2026-07-03
+
+### Added
+- Added an About button to the UI toolbar with version, copyright, license, clickable paper/project/website links, and click-outside dismissal.
+- Added UI details-panel vertex coordinate rows for selected polygon targets and obstacles; polygon target details now omit radius and label vertices with the target name.
+- Added yellow mini-map selection highlighting for selected drones, targets, and obstacles.
+
+### Changed
+- Limited runtime request-history retention to the current session; non-current sessions discard request history by default, and switching the current session clears request history from other sessions.
+- Changed request-history `limit` query defaults so omitted `limit` returns all retained records, while explicit `limit` values return that many recent records.
+- Excluded `GET /sessions/current/data` from runtime request-history recording.
+- Stopped storing full response bodies in structured API logs; logs now record response size, type, and an omission summary, and large response paths skip body capture.
+
 ## [0.4.0] - 2026-06-06
 
 ### Added

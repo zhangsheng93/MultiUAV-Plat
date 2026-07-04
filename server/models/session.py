@@ -593,16 +593,16 @@ class Session:
 
         self.last_updated = time.time()
 
-    def add_request_to_history(self, request_record: Dict[str, Any]) -> None:
+    def add_request_to_history(self, request_record: Dict[str, Any]) -> Dict[str, Any]:
         """Add an HTTP request record to the session's request history."""
-        self.request_history.append(
-            self.normalize_request_history_record(request_record)
-        )
+        normalized_record = self.normalize_request_history_record(request_record)
+        self.request_history.append(normalized_record)
 
         if len(self.request_history) > self.max_request_history:
             self.request_history = self.request_history[-self.max_request_history:]
 
         self.last_updated = time.time()
+        return normalized_record
 
     @staticmethod
     def _validate_request_history_limit(limit: int) -> int:

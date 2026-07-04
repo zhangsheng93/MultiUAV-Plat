@@ -202,22 +202,29 @@ client-IP headers are not exposed or trusted. Query values remain raw strings
 for replay, repeated keys are ordered arrays, sensitive keys are redacted, and
 missing legacy `query_params` values normalize to `{}`.
 
-Request-history storage retains 5,000 records per session by default and can be
-changed with `main.py --request-history-limit N`. The endpoint `limit` query
-remains capped at 1,000 records per response.
+Request-history storage retains 5,000 records for the current session by
+default and can be changed with `main.py --request-history-limit N`. Non-current
+sessions discard request history by default, and switching the current session
+clears request history from all sessions except the newly current one. Omitting
+the endpoint `limit` query returns all retained request-history records; setting
+`limit` returns that many recent records.
 
 Request history is runtime-only and is returned only by the dedicated
 request-history endpoints. It is excluded from session objects, exports,
 imports, and restores, and is lost when the server process exits.
-Request-history endpoint response bodies are intentionally omitted from
-structured API logs and session request-history records for performance and
-recursion safety.
+`GET /sessions/current/data` is not recorded in request history.
+Structured API logs do not store full response bodies. They record
+`response_size_bytes`, `response_body_type`, and `response_body_summary`
+instead. Large response paths such as session-data endpoints, screenshot
+endpoints, and request-history endpoints omit response body capture.
+Request-history endpoint response bodies are intentionally omitted from session
+request-history records for performance and recursion safety.
 `client_privilege` uses uppercase role names: `AGENT`, `USER`, `SYSTEM`, and
 `ADMIN`. AGENT clients may call only `GET /sessions/current/request-history`;
 they see only AGENT-authenticated records with the same normalized `X-Agent-ID`
 value. AGENT requests without `X-Agent-ID` are attributed to `default_agent`.
-SYSTEM and ADMIN clients see unfiltered request history, including
-`GET /sessions/{id}/request-history`.
+SYSTEM and ADMIN clients see unfiltered request history for sessions that still
+have runtime history, including `GET /sessions/{id}/request-history`.
 
 SYSTEM and ADMIN clients can clear runtime request history with
 `DELETE /sessions/current/request-history` or
@@ -2164,6 +2171,8 @@ curl -X POST "http://localhost:8000/sessions/mission-backup-001?overwrite=true&d
 - `circle`: Filled circle with brown color and white outline
 - `ellipse`: Filled ellipse with medium orchid color and white outline
 - `polygon`: Filled polygon with dim gray color; selected with expanded boundary outline
+- Target polygons omit radius in the details panel and list numbered coordinates under `Vertices: <target name>`.
+- Selected drones, targets, and obstacles use a yellow mini-map highlight ring.
 
 ### Obstacle Types
 - `point` - Point obstacle (requires `position`; `radius` defaults to 1.0m)

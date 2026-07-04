@@ -14,6 +14,7 @@ from tkinter import ttk, messagebox
 from api_server import APIServer
 import os
 import platform
+import webbrowser
 from typing import Any, Callable, Dict, List, Optional
 from utils import (
     parse_vertices_from_text,
@@ -233,7 +234,7 @@ def show_about_dialog(
     if set_icon is not None:
         set_icon(dialog)
     dialog.title("About MultiUAV-Plat Control System")
-    set_window_geometry_and_center(dialog, 600, 550, parent)
+    set_window_geometry_and_center(dialog, 600, 680, parent)
     dialog.resizable(False, False)
 
     main_frame = ttk.Frame(dialog, padding="20")
@@ -258,6 +259,17 @@ def show_about_dialog(
 
     info_frame = ttk.LabelFrame(main_frame, text="Version Information", padding="15")
     info_frame.pack(fill=tk.X, pady=(0, 10))
+    info_frame.columnconfigure(1, weight=1)
+
+    if api_connected is True:
+        api_status = "Connected ✓"
+        status_color = "green"
+    elif api_connected is False:
+        api_status = "Disconnected ✗"
+        status_color = "red"
+    else:
+        api_status = "Status unknown"
+        status_color = "gray"
 
     version_info = [
         ("Version:", version),
@@ -274,8 +286,22 @@ def show_about_dialog(
             row=i, column=1, sticky=tk.W, padx=5, pady=3
         )
 
+    api_row = len(version_info)
+    ttk.Label(info_frame, text="API Server:", font=("Arial", 12, "bold")).grid(
+        row=api_row, column=0, sticky=tk.W, padx=5, pady=3
+    )
+    api_frame = ttk.Frame(info_frame)
+    api_frame.grid(row=api_row, column=1, sticky=tk.W, padx=5, pady=3)
+    ttk.Label(api_frame, text=api_base_url, font=("Arial", 12)).pack(side=tk.LEFT)
+    ttk.Label(
+        api_frame,
+        text=api_status,
+        font=("Arial", 12),
+        foreground=status_color,
+    ).pack(side=tk.LEFT, padx=(8, 0))
+
     features_frame = ttk.LabelFrame(main_frame, text="Key Features", padding="10")
-    features_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+    features_frame.pack(fill=tk.X, pady=(0, 10))
 
     features = [
         "• Session-based multi-UAV coordination",
@@ -290,16 +316,46 @@ def show_about_dialog(
 
     features_text = tk.Text(
         features_frame,
-        height=10,
+        height=8,
         width=50,
         wrap=tk.WORD,
         bg="#f5f5f5",
         relief=tk.FLAT,
-        font=("Arial", 15),
+        font=("Arial", 12),
     )
-    features_text.pack(fill=tk.BOTH, expand=True)
+    features_text.pack(fill=tk.X)
     features_text.insert("1.0", "\n".join(features))
     features_text.config(state="disabled")
+
+    references_frame = ttk.LabelFrame(main_frame, text="Copyright & References", padding="10")
+    references_frame.pack(fill=tk.X, pady=(10, 0))
+    references_frame.columnconfigure(1, weight=1)
+
+    reference_links = [
+        ("Paper:", "https://arxiv.org/abs/2606.31073"),
+        ("Project:", "https://github.com/zhangsheng93/MultiUAV-Plat"),
+        ("Website:", "https://zhangsheng93.github.io/multiuavweb/"),
+    ]
+
+    def open_reference_link(url: str):
+        try:
+            webbrowser.open_new_tab(url)
+        except Exception as exc:
+            messagebox.showerror("Open Link Failed", f"Could not open link:\n{url}\n\n{exc}", parent=dialog)
+
+    for row, (label, url) in enumerate(reference_links):
+        ttk.Label(references_frame, text=label, font=("Arial", 11, "bold")).grid(
+            row=row, column=0, sticky=tk.W, padx=(0, 8), pady=2
+        )
+        link_label = ttk.Label(
+            references_frame,
+            text=url,
+            font=("Arial", 11, "underline"),
+            foreground="#0645AD",
+            cursor="hand2",
+        )
+        link_label.grid(row=row, column=1, sticky=tk.W, pady=2)
+        link_label.bind("<Button-1>", lambda _event, link=url: open_reference_link(link))
 
     credits_frame = ttk.Frame(main_frame)
     credits_frame.pack(fill=tk.X, pady=(10, 0))
@@ -316,34 +372,6 @@ def show_about_dialog(
         font=("Arial", 12),
         foreground="gray",
     ).pack()
-
-    ttk.Separator(main_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
-
-    status_frame = ttk.Frame(main_frame)
-    status_frame.pack(fill=tk.X)
-
-    if api_connected is True:
-        api_status = "Connected ✓"
-        status_color = "green"
-    elif api_connected is False:
-        api_status = "Disconnected ✗"
-        status_color = "red"
-    else:
-        api_status = "Status unknown"
-        status_color = "gray"
-
-    ttk.Label(status_frame, text="API Server:", font=("Arial", 15)).pack(side=tk.LEFT)
-    ttk.Label(
-        status_frame,
-        text=api_base_url,
-        font=("Arial", 15, "bold"),
-    ).pack(side=tk.LEFT, padx=5)
-    ttk.Label(
-        status_frame,
-        text=api_status,
-        font=("Arial", 15),
-        foreground=status_color,
-    ).pack(side=tk.LEFT, padx=5)
 
     button_frame = ttk.Frame(main_frame)
     button_frame.pack(pady=(15, 0))
