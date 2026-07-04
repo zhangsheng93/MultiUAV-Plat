@@ -19,6 +19,7 @@ type CoreMessageKey =
   | 'cheat.cameraFollow'
   | 'cheat.cameraRoam'
   | 'cheat.cameraFit'
+  | 'cheat.roamSpeed'
   | 'cheat.zoom'
   | 'cheat.reset'
   | 'cheat.labels'
@@ -164,6 +165,7 @@ type CoreMessageKey =
   | 'footer.zoomScale'
   | 'activity.selection'
   | 'activity.cameraChanged'
+  | 'activity.cameraChangedWithRoamSpeed'
   | 'activity.selectionCleared'
   | 'activity.labelsShown'
   | 'activity.labelsHidden'
@@ -193,6 +195,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'cheat.cameraFollow': '跟随',
     'cheat.cameraRoam': '漫游路径',
     'cheat.cameraFit': '全局',
+    'cheat.roamSpeed': '漫游加速 / 减速',
     'cheat.zoom': '放大 / 缩小',
     'cheat.reset': '重置视角',
     'cheat.labels': '显示 / 隐藏标签',
@@ -383,6 +386,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'footer.zoomScale': '比例尺：{value}%',
     'activity.selection': '已选择 {kind} {name}（ID: {id}），查看详细信息；右键取消选择。',
     'activity.cameraChanged': '已切换到 {mode}视角。',
+    'activity.cameraChangedWithRoamSpeed': '已切换到 {mode}视角 · 漫游速度: {speed}%',
     'activity.selectionCleared': '已取消选择。',
     'activity.labelsShown': '已显示标签。',
     'activity.labelsHidden': '已隐藏标签。',
@@ -411,6 +415,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'cheat.cameraFollow': 'Follow view',
     'cheat.cameraRoam': 'Roam path',
     'cheat.cameraFit': 'Fit all',
+    'cheat.roamSpeed': 'Roam speed up / down',
     'cheat.zoom': 'Zoom in / out',
     'cheat.reset': 'Reset view',
     'cheat.labels': 'Show / hide labels',
@@ -601,6 +606,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'footer.zoomScale': 'Scale: {value}%',
     'activity.selection': 'Selected {kind} {name} (ID: {id}). Viewing details; right-click to clear.',
     'activity.cameraChanged': 'Switched to {mode} view.',
+    'activity.cameraChangedWithRoamSpeed': 'Switched to {mode} view · Roam speed: {speed}%',
     'activity.selectionCleared': 'Selection cleared.',
     'activity.labelsShown': 'Labels shown.',
     'activity.labelsHidden': 'Labels hidden.',
@@ -676,6 +682,7 @@ const controlledValues: Record<Locale, Record<string, string>> = {
     '无 current session': 'No current session',
     '请先选择一架无人机。': 'Select a drone first.',
     '该无人机没有可漫游路径。': 'The selected drone has no path to roam.',
+    '请先进入漫游模式。': 'Enter roam mode first.',
     '感知半径必须大于 0。': 'Perception radius must be greater than 0.',
     '无人机已更新': 'Drone updated',
     '无人机更新请求超时': 'Drone update request timed out',

@@ -11,6 +11,9 @@ export type RoamSample = {
 const POSITION_EPSILON = 0.001;
 const TURN_BLEND_MIN_DISTANCE = 8;
 const TURN_BLEND_MAX_DISTANCE = 24;
+const ROAM_SPEED_STEP = 1.25;
+const ROAM_SPEED_MIN_MULTIPLIER = 0.25;
+const ROAM_SPEED_MAX_MULTIPLIER = 4;
 
 function distance(a: Position, b: Position): number {
   return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -38,8 +41,33 @@ function dot(a: Position, b: Position): number {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+function cross(a: Position, b: Position): Position {
+  return {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x
+  };
+}
+
 function isUsableDirection(vector: Position): boolean {
   return Math.hypot(vector.x, vector.y, vector.z) > POSITION_EPSILON;
+}
+
+function getOppositeTurnAxis(vector: Position): Position {
+  const horizontalLength = Math.hypot(vector.x, vector.y);
+  return horizontalLength > POSITION_EPSILON ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+}
+
+function rotateAroundAxis(vector: Position, axis: Position, angle: number): Position {
+  const unitAxis = normalize(axis);
+  const cosAngle = Math.cos(angle);
+  const sinAngle = Math.sin(angle);
+  const axisDotVector = dot(unitAxis, vector);
+  const axisCrossVector = cross(unitAxis, vector);
+  return add(
+    add(scale(vector, cosAngle), scale(axisCrossVector, sinAngle)),
+    scale(unitAxis, axisDotVector * (1 - cosAngle))
+  );
 }
 
 function lerpDirection(from: Position, to: Position, t: number): Position {
@@ -48,12 +76,17 @@ function lerpDirection(from: Position, to: Position, t: number): Position {
   if (!isUsableDirection(start)) return end;
   if (!isUsableDirection(end)) return start;
   const clampedT = Math.max(0, Math.min(1, t));
+  const clampedDot = Math.max(-1, Math.min(1, dot(start, end)));
+  const angle = Math.acos(clampedDot);
 
-  if (dot(start, end) < -0.98) {
-    return clampedT < 0.5 ? start : end;
+  if (angle <= POSITION_EPSILON) {
+    return start;
   }
 
-  return normalize(add(scale(start, 1 - clampedT), scale(end, clampedT)));
+  const turnAxis = isUsableDirection(cross(start, end))
+    ? cross(start, end)
+    : getOppositeTurnAxis(start);
+  return normalize(rotateAroundAxis(start, turnAxis, angle * clampedT));
 }
 
 function segmentDirection(path: Position[], segmentIndex: number): Position | null {
@@ -112,12 +145,28 @@ export function getSmoothedRoamForward(
 
 export function normalizeRoamPath(path: Position[], currentPosition: Position): Position[] {
   const normalized: Position[] = [];
-  for (const point of [...path, currentPosition]) {
+  for (const point of path) {
     const previous = normalized[normalized.length - 1];
     if (!previous || distance(previous, point) > POSITION_EPSILON) {
       normalized.push({ ...point });
     }
   }
+
+  if (normalized.length > 1) {
+    const first = normalized[0];
+    const last = normalized[normalized.length - 1];
+    const firstDistanceToCurrent = distance(first, currentPosition);
+    const lastDistanceToCurrent = distance(last, currentPosition);
+    if (firstDistanceToCurrent + POSITION_EPSILON < lastDistanceToCurrent) {
+      normalized.reverse();
+    }
+  }
+
+  const finalPoint = normalized[normalized.length - 1];
+  if (!finalPoint || distance(finalPoint, currentPosition) > POSITION_EPSILON) {
+    normalized.push({ ...currentPosition });
+  }
+
   return normalized;
 }
 
@@ -136,6 +185,15 @@ export function getRoamSpeed(drone: DroneState): number {
       ? drone.max_speed
       : 20;
   return Math.max(5, Math.min(80, preferredSpeed));
+}
+
+export function stepRoamSpeedMultiplier(currentMultiplier: number, direction: -1 | 1): number {
+  const safeCurrent = Number.isFinite(currentMultiplier) && currentMultiplier > 0 ? currentMultiplier : 1;
+  const multiplier = direction > 0 ? ROAM_SPEED_STEP : 1 / ROAM_SPEED_STEP;
+  return Math.max(
+    ROAM_SPEED_MIN_MULTIPLIER,
+    Math.min(ROAM_SPEED_MAX_MULTIPLIER, safeCurrent * multiplier)
+  );
 }
 
 export function sampleRoamPath(path: Position[], distanceAlongPath: number, turnDistance = TURN_BLEND_MIN_DISTANCE): RoamSample | null {

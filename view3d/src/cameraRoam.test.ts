@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getRoamPathLength, getRoamSpeed, getRoamTurnDistance, getSmoothedRoamForward, normalizeRoamPath, sampleRoamPath } from './cameraRoam.ts';
+import { getRoamPathLength, getRoamSpeed, getRoamTurnDistance, getSmoothedRoamForward, normalizeRoamPath, sampleRoamPath, stepRoamSpeedMultiplier } from './cameraRoam.ts';
 
 test('normalizeRoamPath appends current position and removes consecutive duplicates', () => {
   assert.deepEqual(
@@ -12,6 +12,51 @@ test('normalizeRoamPath appends current position and removes consecutive duplica
     [
       { x: 0, y: 0, z: 10 },
       { x: 10, y: 0, z: 10 }
+    ]
+  );
+});
+
+test('normalizeRoamPath reverses latest-first histories so roam starts at the earliest point', () => {
+  assert.deepEqual(
+    normalizeRoamPath([
+      { x: 30, y: 30, z: 20 },
+      { x: 20, y: 20, z: 20 },
+      { x: 10, y: 10, z: 20 }
+    ], { x: 30, y: 30, z: 20 }),
+    [
+      { x: 10, y: 10, z: 20 },
+      { x: 20, y: 20, z: 20 },
+      { x: 30, y: 30, z: 20 }
+    ]
+  );
+});
+
+test('normalizeRoamPath reverses latest-first histories when the current position is newer than history', () => {
+  assert.deepEqual(
+    normalizeRoamPath([
+      { x: 25, y: 25, z: 20 },
+      { x: 20, y: 20, z: 20 },
+      { x: 10, y: 10, z: 20 }
+    ], { x: 30, y: 30, z: 20 }),
+    [
+      { x: 10, y: 10, z: 20 },
+      { x: 20, y: 20, z: 20 },
+      { x: 25, y: 25, z: 20 },
+      { x: 30, y: 30, z: 20 }
+    ]
+  );
+});
+
+test('normalizeRoamPath preserves earliest-first histories and appends the current position once', () => {
+  assert.deepEqual(
+    normalizeRoamPath([
+      { x: 10, y: 10, z: 20 },
+      { x: 20, y: 20, z: 20 }
+    ], { x: 30, y: 30, z: 20 }),
+    [
+      { x: 10, y: 10, z: 20 },
+      { x: 20, y: 20, z: 20 },
+      { x: 30, y: 30, z: 20 }
     ]
   );
 });
@@ -38,6 +83,19 @@ test('sampleRoamPath interpolates by distance and exposes path tangent target', 
   assert.equal(sample?.done, false);
 });
 
+test('sampleRoamPath starts at the first normalized history point at distance zero', () => {
+  const path = normalizeRoamPath([
+    { x: 30, y: 30, z: 20 },
+    { x: 20, y: 20, z: 20 },
+    { x: 10, y: 10, z: 20 }
+  ], { x: 30, y: 30, z: 20 });
+  const sample = sampleRoamPath(path, 0);
+
+  assert.deepEqual(sample?.position, { x: 10, y: 10, z: 20 });
+  assert.equal(sample?.segmentIndex, 0);
+  assert.equal(sample?.done, false);
+});
+
 test('sampleRoamPath rejects empty, single-point, and repeated-only paths', () => {
   assert.equal(sampleRoamPath([], 0), null);
   assert.equal(sampleRoamPath([{ x: 0, y: 0, z: 0 }], 0), null);
@@ -55,6 +113,14 @@ test('getRoamTurnDistance scales with speed and clamps', () => {
   assert.equal(getRoamTurnDistance(5), 8);
   assert.equal(getRoamTurnDistance(20), 16);
   assert.equal(getRoamTurnDistance(80), 24);
+});
+
+test('stepRoamSpeedMultiplier adjusts roam speed within fixed bounds', () => {
+  assert.equal(stepRoamSpeedMultiplier(1, 1), 1.25);
+  assert.equal(stepRoamSpeedMultiplier(1, -1), 0.8);
+  assert.equal(stepRoamSpeedMultiplier(4, 1), 4);
+  assert.equal(stepRoamSpeedMultiplier(0.25, -1), 0.25);
+  assert.equal(stepRoamSpeedMultiplier(Number.NaN, 1), 1.25);
 });
 
 test('smoothed roam forward keeps straight paths aligned to the segment', () => {
@@ -114,6 +180,22 @@ test('smoothed roam forward does not restart after crossing a corner', () => {
   assert.ok(Math.abs(afterCorner!.forwardHint.y - beforeCorner!.forwardHint.y) < 0.04);
 });
 
+test('smoothed roam forward turns smoothly through near-180 degree corners', () => {
+  const path = [
+    { x: 0, y: 0, z: 0 },
+    { x: 20, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 }
+  ];
+  const beforeCorner = sampleRoamPath(path, 19.9, 8);
+  const afterCorner = sampleRoamPath(path, 20.1, 8);
+
+  assert.ok(beforeCorner);
+  assert.ok(afterCorner);
+  assert.ok(beforeCorner!.forwardHint.y > 0.9);
+  assert.ok(afterCorner!.forwardHint.y > 0.9);
+  assert.ok(dotForTest(beforeCorner!.forwardHint, afterCorner!.forwardHint) > 0.99);
+});
+
 test('smoothed roam forward handles endpoints and short segments without invalid values', () => {
   const endpoint = sampleRoamPath([
     { x: 0, y: 0, z: 0 },
@@ -127,3 +209,7 @@ test('smoothed roam forward handles endpoints and short segments without invalid
   assert.equal(Number.isFinite(endpoint!.forwardHint.z), true);
   assert.ok(Math.hypot(endpoint!.forwardHint.x, endpoint!.forwardHint.y, endpoint!.forwardHint.z) > 0.9);
 });
+
+function dotForTest(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}

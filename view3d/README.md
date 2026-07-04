@@ -127,6 +127,7 @@ Keyboard shortcuts:
 - `4`: roam the selected drone's full path from a raised rear chase view.
 - `+` / `-`: zoom in / out.
 - `[` / `]`: decrease / increase label size when labels are visible.
+- `.` / `,`: speed up / slow down the current roam playback.
 - `R`: reset view.
 - `L`: show / hide labels.
 - `M`: show / hide minimap.

@@ -486,7 +486,14 @@ export class ViewerUI {
     this.setActivityText(resolved ? t(this.locale, 'activity.selection', resolved) : '');
   }
 
-  setCameraActivity(mode: CameraMode): void {
+  setCameraActivity(mode: CameraMode, roamSpeedPercent?: number): void {
+    if (mode === 'roam' && typeof roamSpeedPercent === 'number') {
+      this.setActivityText(t(this.locale, 'activity.cameraChangedWithRoamSpeed', {
+        mode: t(this.locale, `camera.${mode}`),
+        speed: roamSpeedPercent
+      }));
+      return;
+    }
     this.setActivityText(t(this.locale, 'activity.cameraChanged', { mode: t(this.locale, `camera.${mode}`) }));
   }
 
@@ -926,6 +933,7 @@ export class ViewerUI {
     this.setText('#cheatCameraFollow', t(this.locale, 'cheat.cameraFollow'));
     this.setText('#cheatCameraRoam', t(this.locale, 'cheat.cameraRoam'));
     this.setText('#cheatCameraFit', t(this.locale, 'cheat.cameraFit'));
+    this.setText('#cheatRoamSpeed', t(this.locale, 'cheat.roamSpeed'));
     this.setText('#cheatZoom', t(this.locale, 'cheat.zoom'));
     this.setText('#cheatReset', t(this.locale, 'cheat.reset'));
     this.setText('#cheatLabels', t(this.locale, 'cheat.labels'));

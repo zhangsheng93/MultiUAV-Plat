@@ -125,6 +125,8 @@ test('keyboard shortcuts cover first phase 2D parity actions', () => {
   assert.equal(getShortcutAction('2'), 'camera_top');
   assert.equal(getShortcutAction('3'), 'camera_follow');
   assert.equal(getShortcutAction('4'), 'camera_roam');
+  assert.equal(getShortcutAction('.'), 'roam_speed_up');
+  assert.equal(getShortcutAction(','), 'roam_speed_down');
   assert.equal(getShortcutAction('x'), null);
 });
 

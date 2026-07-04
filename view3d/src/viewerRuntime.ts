@@ -19,6 +19,8 @@ export type ShortcutAction =
   | 'camera_follow'
   | 'camera_roam'
   | 'camera_fit'
+  | 'roam_speed_up'
+  | 'roam_speed_down'
   | 'reset_view';
 
 export type ShortcutOptions = {
@@ -97,5 +99,7 @@ export function getShortcutAction(key: string, options: ShortcutOptions = {}): S
   if (key === '2') return 'camera_top';
   if (key === '3') return 'camera_follow';
   if (key === '4') return 'camera_roam';
+  if (key === '.') return 'roam_speed_up';
+  if (key === ',') return 'roam_speed_down';
   return null;
 }

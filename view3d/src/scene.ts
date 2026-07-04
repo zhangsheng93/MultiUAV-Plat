@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { formatDroneInfoLines, formatObstacleInfoLines, formatTargetInfoLines } from './entityLabel';
 import { getTargetVisualState, normalizeCoveragePoints, normalizeCoverageSurfaces, normalizeTargetMotionPath, shouldRenderTargetMotionPath } from './taskVisuals';
 import {
@@ -28,7 +31,7 @@ import {
 import { getTopViewCameraUp, getWorldViewCameraUp } from './cameraOrientation.ts';
 import { getSceneAxisEnd, sceneGroundToWorld, worldToScenePosition, worldYToSceneZ } from './coordinateSystem.ts';
 import { DRONE_SHADOW_BASE_RADIUS, DRONE_VISUAL_GROUND_CLEARANCE, getDroneGroundShadowStyle } from './droneVisuals.ts';
-import { getRoamPathLength, getRoamSpeed, getRoamTurnDistance, normalizeRoamPath, sampleRoamPath } from './cameraRoam.ts';
+import { getRoamPathLength, getRoamSpeed, getRoamTurnDistance, normalizeRoamPath, sampleRoamPath, stepRoamSpeedMultiplier } from './cameraRoam.ts';
 import type { Locale } from './i18n.ts';
 import { DEFAULT_LABELS_VISIBLE } from './viewerRuntime.ts';
 import type {
@@ -47,11 +50,14 @@ type GroundClickCallback = (point: Position) => void;
 type PointerWorldCallback = (point: Position | null) => void;
 type ZoomScaleCallback = (scale: number) => void;
 export type CoverageDisplayMode = 'surface' | 'points' | 'both';
-export type CameraModeResult = { ok: boolean; message?: string };
+export type CameraModeResult = { ok: boolean; message?: string; roamSpeedMultiplier?: number };
+export type RoamSpeedResult = CameraModeResult & { multiplier?: number };
 
 type RoamState = {
   droneId: string;
   path: Position[];
+  baseSpeed: number;
+  speedMultiplier: number;
   speed: number;
   distance: number;
   totalLength: number;
@@ -105,6 +111,8 @@ const FOLLOW_CHASE_TARGET = new THREE.Vector3(0, 5, -10);
 const FOLLOW_CHASE_DELTA = FOLLOW_CHASE_EYE.clone().sub(FOLLOW_CHASE_TARGET);
 const ROAM_TRAIL_COLOR = 0x22c55e;
 const DEFAULT_TRAIL_COLOR = 0xe5e7eb;
+const DEFAULT_TRAIL_OPACITY = 0.24;
+const ROAM_TRAIL_LINE_WIDTH = 3;
 
 function toScenePosition(position: Position): THREE.Vector3 {
   return worldToScenePosition(position);
@@ -253,6 +261,34 @@ function makeSelectionLine(points: THREE.Vector3[]): THREE.LineLoop {
   const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), material);
   line.renderOrder = 80;
   return line;
+}
+
+function flattenLinePoints(points: THREE.Vector3[]): number[] {
+  return points.flatMap((point) => [point.x, point.y, point.z]);
+}
+
+function makeWideLine(points: THREE.Vector3[], color: number, opacity: number, linewidth: number): Line2 {
+  const geometry = new LineGeometry();
+  geometry.setPositions(flattenLinePoints(points));
+  const material = new LineMaterial({
+    color,
+    linewidth,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    depthTest: true
+  });
+  const line = new Line2(geometry, material);
+  line.computeLineDistances();
+  line.frustumCulled = false;
+  return line;
+}
+
+function updateWideLineGeometry(line: Line2, points: THREE.Vector3[]): void {
+  line.geometry.dispose();
+  line.geometry = new LineGeometry();
+  line.geometry.setPositions(flattenLinePoints(points));
+  line.computeLineDistances();
 }
 
 function makeCircularSelectionHighlight(radius: number, y: number, position?: THREE.Vector3, thickness = 0.28): THREE.Mesh {
@@ -495,7 +531,7 @@ export class ViewerScene {
   private readonly droneActors = new Map<string, DroneActor>();
   private readonly trailLines = new Map<string, THREE.Line>();
   private readonly roamGhostDrone = makeRoamGhostDrone();
-  private roamTrailLine: THREE.Line | null = null;
+  private roamTrailLine: Line2 | null = null;
   private selectionHighlight: THREE.Object3D | null = null;
   private readonly movePreview = new THREE.Mesh(
     new THREE.CylinderGeometry(6, 6, 0.28, 48),
@@ -734,6 +770,18 @@ export class ViewerScene {
     this.notifyZoomScaleChanged(true);
   }
 
+  stepRoamSpeed(direction: -1 | 1): RoamSpeedResult {
+    if (this.cameraMode !== 'roam' || !this.roamState) {
+      return { ok: false, message: '请先进入漫游模式。' };
+    }
+
+    const nextMultiplier = stepRoamSpeedMultiplier(this.roamState.speedMultiplier, direction);
+    this.roamState.speedMultiplier = nextMultiplier;
+    this.roamState.speed = this.roamState.baseSpeed * nextMultiplier;
+    this.roamState.turnDistance = getRoamTurnDistance(this.roamState.speed);
+    return { ok: true, multiplier: nextMultiplier };
+  }
+
   resetView(): void {
     this.stopRoamVisuals();
     this.cameraMode = 'free';
@@ -799,6 +847,7 @@ export class ViewerScene {
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.updateRoamTrailResolution();
   }
 
   private animate(): void {
@@ -996,7 +1045,11 @@ export class ViewerScene {
         this.trailLines.delete(id);
       }
     }
-    state.drones.forEach((drone) => this.upsertDrone(drone, state.paths[drone.id] || []));
+    state.drones.forEach((drone) => this.upsertDrone(drone, this.getDroneHistoryPath(drone, state)));
+  }
+
+  private getDroneHistoryPath(drone: DroneState, state: ViewerState | null = this.state): Position[] {
+    return normalizeRoamPath(state?.paths[drone.id] || [], drone.position);
   }
 
   private upsertDrone(drone: DroneState, path: Position[]): void {
@@ -1192,9 +1245,6 @@ export class ViewerScene {
   private updateTrail(droneId: string, path: Position[]): void {
     const trail = this.getTrailPoints(path).map(toScenePosition);
     const existingTrail = this.trailLines.get(droneId);
-    const isRoamingDrone = this.roamState?.droneId === droneId;
-    const trailColor = isRoamingDrone ? ROAM_TRAIL_COLOR : DEFAULT_TRAIL_COLOR;
-    const trailOpacity = isRoamingDrone ? 0.88 : 0.24;
     if (trail.length <= 1) {
       if (existingTrail) {
         this.root.remove(existingTrail);
@@ -1208,9 +1258,9 @@ export class ViewerScene {
       existingTrail.geometry.dispose();
       existingTrail.geometry = new THREE.BufferGeometry().setFromPoints(trail);
       const material = existingTrail.material as THREE.LineBasicMaterial;
-      material.color.setHex(trailColor);
+      material.color.setHex(DEFAULT_TRAIL_COLOR);
       material.transparent = true;
-      material.opacity = trailOpacity;
+      material.opacity = DEFAULT_TRAIL_OPACITY;
       material.depthWrite = false;
       material.depthTest = true;
       material.needsUpdate = true;
@@ -1220,9 +1270,9 @@ export class ViewerScene {
     const trailLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(trail),
       new THREE.LineBasicMaterial({
-        color: trailColor,
+        color: DEFAULT_TRAIL_COLOR,
         transparent: true,
-        opacity: trailOpacity,
+        opacity: DEFAULT_TRAIL_OPACITY,
         depthWrite: false,
         depthTest: true
       })
@@ -1231,36 +1281,34 @@ export class ViewerScene {
     this.root.add(trailLine);
   }
 
-  private updateRoamTrail(): void {
-    if (!this.roamState) {
+  private updateRoamTrail(path: Position[] | null = this.roamState?.path || null): void {
+    if (!path) {
       this.clearRoamTrail();
       return;
     }
 
-    const points = this.roamState.path.map(toScenePosition);
+    const points = path.map(toScenePosition);
     if (points.length <= 1) {
       this.clearRoamTrail();
       return;
     }
 
     if (this.roamTrailLine) {
-      this.roamTrailLine.geometry.dispose();
-      this.roamTrailLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
+      updateWideLineGeometry(this.roamTrailLine, points);
+      this.updateRoamTrailResolution();
       return;
     }
 
-    this.roamTrailLine = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(points),
-      new THREE.LineBasicMaterial({
-        color: ROAM_TRAIL_COLOR,
-        transparent: true,
-        opacity: 0.92,
-        depthWrite: false,
-        depthTest: true
-      })
-    );
+    this.roamTrailLine = makeWideLine(points, ROAM_TRAIL_COLOR, 0.92, ROAM_TRAIL_LINE_WIDTH);
     this.roamTrailLine.renderOrder = 18;
+    this.updateRoamTrailResolution();
     this.root.add(this.roamTrailLine);
+  }
+
+  private updateRoamTrailResolution(): void {
+    if (!this.roamTrailLine) return;
+    const material = this.roamTrailLine.material as LineMaterial;
+    material.resolution.set(Math.max(1, this.host.clientWidth), Math.max(1, this.host.clientHeight));
   }
 
   private clearRoamTrail(): void {
@@ -1280,7 +1328,7 @@ export class ViewerScene {
   private startRoam(): CameraModeResult {
     const drone = this.getSelectedDrone();
     if (!drone) return { ok: false, message: '请先选择一架无人机。' };
-    const path = normalizeRoamPath(this.state?.paths[drone.id] || [], drone.position);
+    const path = this.getDroneHistoryPath(drone);
     const totalLength = getRoamPathLength(path);
     if (path.length < 2 || totalLength <= 0) {
       return { ok: false, message: '该无人机没有可漫游路径。' };
@@ -1290,6 +1338,8 @@ export class ViewerScene {
     this.roamState = {
       droneId: drone.id,
       path,
+      baseSpeed: speed,
+      speedMultiplier: 1,
       speed,
       distance: 0,
       totalLength,
@@ -1297,8 +1347,8 @@ export class ViewerScene {
       done: false
     };
     this.updateRoamTrail();
-    this.updateTrail(drone.id, this.state?.paths[drone.id] || []);
-    return { ok: true };
+    this.updateTrail(drone.id, path);
+    return { ok: true, roamSpeedMultiplier: 1 };
   }
 
   private stopFirstPersonCamera(): void {
@@ -1316,7 +1366,8 @@ export class ViewerScene {
     this.roamGhostDrone.visible = false;
     this.clearRoamTrail();
     if (previousRoamDroneId && this.state) {
-      this.updateTrail(previousRoamDroneId, this.state.paths[previousRoamDroneId] || []);
+      const drone = this.state.drones.find((item) => item.id === previousRoamDroneId);
+      this.updateTrail(previousRoamDroneId, drone ? this.getDroneHistoryPath(drone) : this.state.paths[previousRoamDroneId] || []);
     }
   }
 
@@ -1332,12 +1383,28 @@ export class ViewerScene {
       });
     }
 
+    this.updateSelectedDroneHighlightPosition();
+
     if (this.roamGhostDrone.visible) {
       const rotorSpeed = this.getRotorSpeed('moving');
       this.roamGhostDrone.userData.rotorGroups.forEach((rotorGroup, index) => {
         rotorGroup.rotation.y += rotorSpeed * deltaSeconds * (index % 2 === 0 ? 1 : -1);
       });
     }
+  }
+
+  private updateSelectedDroneHighlightPosition(): void {
+    if (!this.selectionHighlight || this.selected?.kind !== 'drone') return;
+    const actor = this.droneActors.get(this.selected.id);
+    if (!actor) return;
+
+    const worldCenter = new THREE.Vector3();
+    actor.group.getWorldPosition(worldCenter);
+    this.selectionHighlight.position.set(
+      worldCenter.x,
+      Math.max(2.8, worldCenter.y + 3.2),
+      worldCenter.z
+    );
   }
 
   private updateFirstPersonCamera(deltaSeconds: number): void {
@@ -1379,9 +1446,6 @@ export class ViewerScene {
   private updateRoamCamera(deltaSeconds: number): void {
     const roam = this.roamState;
     if (!roam) return;
-    if (!roam.done) {
-      roam.distance = Math.min(roam.totalLength, roam.distance + roam.speed * deltaSeconds);
-    }
 
     const sample = sampleRoamPath(roam.path, roam.distance, roam.turnDistance);
     if (!sample) {
@@ -1391,6 +1455,7 @@ export class ViewerScene {
     }
 
     roam.done = sample.done;
+    this.updateRoamTrail(sample.done ? [] : this.getRemainingRoamPath(roam.path, sample));
     const position = toScenePosition(sample.position);
     const direction = worldToScenePosition(sample.forwardHint);
     if (direction.lengthSq() <= 0.0001 && sample.segmentIndex > 0) {
@@ -1410,6 +1475,21 @@ export class ViewerScene {
     if (roam.done) this.hideRoamGhost();
     else this.updateRoamGhost(position, rotationY);
     this.setPathChaseCamera(position, direction);
+
+    if (!roam.done) {
+      roam.distance = Math.min(roam.totalLength, roam.distance + roam.speed * deltaSeconds);
+    }
+  }
+
+  private getRemainingRoamPath(path: Position[], sample: { position: Position; segmentIndex: number }): Position[] {
+    const remaining = [{ ...sample.position }];
+    for (const point of path.slice(sample.segmentIndex + 1)) {
+      const previous = remaining[remaining.length - 1];
+      if (Math.hypot(previous.x - point.x, previous.y - point.y, previous.z - point.z) > 0.001) {
+        remaining.push({ ...point });
+      }
+    }
+    return remaining;
   }
 
   private getRotationYForForward(forward: THREE.Vector3): number {

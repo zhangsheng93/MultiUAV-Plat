@@ -198,6 +198,10 @@ function handleShortcutAction(action: ShortcutAction): void {
     handleCameraModeRequest('follow');
   } else if (action === 'camera_roam') {
     handleCameraModeRequest('roam');
+  } else if (action === 'roam_speed_up') {
+    handleRoamSpeedStep(1);
+  } else if (action === 'roam_speed_down') {
+    handleRoamSpeedStep(-1);
   } else if (action === 'camera_fit') {
     handleCameraModeRequest('fit');
   } else if (action === 'pan_up') {
@@ -210,6 +214,20 @@ function handleShortcutAction(action: ShortcutAction): void {
     scene.panBy(24, 0);
   }
   refreshMiniMap();
+}
+
+function handleRoamSpeedStep(direction: -1 | 1): void {
+  const result = scene.stepRoamSpeed(direction);
+  if (result.ok && typeof result.multiplier === 'number') {
+    const percent = Math.round(result.multiplier * 100);
+    ui.setCameraActivity('roam', percent);
+    return;
+  }
+
+  ui.setDisplayStatus({
+    ok: false,
+    message: translateDataValue(locale, result.message || '请求失败')
+  });
 }
 
 function exitRoamMode(): void {
@@ -232,7 +250,12 @@ function applyCameraMode(mode: CameraMode): void {
       scene.setZoomScale(1);
     }
     ui.setCameraMode(mode);
-    ui.setCameraActivity(mode);
+    ui.setCameraActivity(
+      mode,
+      mode === 'roam' && typeof result.roamSpeedMultiplier === 'number'
+        ? Math.round(result.roamSpeedMultiplier * 100)
+        : undefined
+    );
     return;
   }
   ui.setDisplayStatus({ ok: false, message: result.message || '请求失败' });
