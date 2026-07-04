@@ -14,6 +14,9 @@ test('normalizes and toggles supported locales', () => {
 test('translates interface labels with interpolation', () => {
   assert.equal(t('zh-CN', 'camera.free'), '自由视角');
   assert.equal(t('en-US', 'camera.free'), 'Free');
+  assert.equal(t('zh-CN', 'camera.roam'), '漫游');
+  assert.equal(t('en-US', 'camera.roam'), 'Roam');
+  assert.equal(t('en-US', 'cheat.cameraRoam'), 'Roam path');
   assert.equal(t('en-US', 'session.summary', { drones: 2, targets: 1, obstacles: 3 }), '2 drones · 1 targets · 3 obstacles');
   assert.equal(t('en-US', 'task.title'), 'Tasks & Checks');
   assert.equal(t('en-US', 'task.runCheck'), 'Run Check');
@@ -32,6 +35,7 @@ test('translates controlled data values and known Chinese object names', () => {
   assert.equal(translateDataValue('en-US', '障碍物 4'), 'Obstacle 4');
   assert.equal(translateDataValue('en-US', '不可飞越'), 'Not flyable');
   assert.equal(translateDataValue('en-US', '请先选择一架无人机。'), 'Select a drone first.');
+  assert.equal(translateDataValue('en-US', '该无人机没有可漫游路径。'), 'The selected drone has no path to roam.');
   assert.equal(translateDataValue('en-US', '请选择任务。'), 'Select a task.');
   assert.equal(translateDataValue('en-US', '请求中...'), 'Requesting...');
   assert.equal(translateDataValue('en-US', '当前状态 hovering 不允许移动。'), 'Current status Hovering does not allow movement.');

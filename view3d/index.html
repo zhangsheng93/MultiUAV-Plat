@@ -17,6 +17,7 @@
           <button id="cameraFit">Fit</button>
           <button id="cameraTop">Top</button>
           <button id="cameraFollow">Follow</button>
+          <button id="cameraRoam">Roam</button>
           <select id="displayCoverageMode" title="Coverage Display">
             <option value="surface">Continuous Surface</option>
             <option value="points">Coverage Points</option>
@@ -59,6 +60,10 @@
           <div class="shortcut-row">
             <kbd>3</kbd>
             <span id="cheatCameraFollow">Follow view</span>
+          </div>
+          <div class="shortcut-row">
+            <kbd>4</kbd>
+            <span id="cheatCameraRoam">Roam path</span>
           </div>
           <div class="shortcut-row">
             <kbd>+ / -</kbd>
@@ -472,7 +477,7 @@
           <input id="labelScale" type="range" min="50" max="300" value="100" />
           <span id="labelScaleLabel">100%</span>
         </label>
-        <span id="statusSummary" class="status-summary">Drones/Targets/Obstacles: 0/0/0</span>
+        <span id="statusSummary" class="status-summary"></span>
         <span id="clickPosition" class="click-position">Click: (-, -, -)</span>
         <div class="status-right">
           <span id="activityStatus" class="hidden"></span>

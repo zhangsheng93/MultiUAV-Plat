@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getTopViewCameraDistance, resolveSceneBounds } from './sceneBounds.ts';
+import { getSceneCameraFarPlane, getSceneGroundDimensions, getTopViewCameraDistance, resolveSceneBounds } from './sceneBounds.ts';
 import type { ViewerState } from './types.ts';
 
 function makeState(overrides: Partial<ViewerState> = {}): ViewerState {
@@ -53,6 +53,18 @@ test('scene bounds expand beyond the nominal canvas to include flight paths and 
   assert.equal(bounds.centerX, 512);
   assert.equal(bounds.centerY, 314);
   assert.equal(bounds.size, 1224);
+});
+
+test('ground dimensions preserve rectangular scene bounds instead of forcing a square', () => {
+  const bounds = resolveSceneBounds(makeState(), 100);
+  const ground = getSceneGroundDimensions(bounds, 1.2);
+
+  assert.equal(ground.width, bounds.width * 1.2);
+  assert.equal(ground.height, bounds.height * 1.2);
+  assert.equal(ground.baseSize, ground.width);
+  assert.equal(ground.gridScaleX, 1);
+  assert.equal(Math.round(ground.gridScaleZ * 1000) / 1000, 0.905);
+  assert.ok(ground.height < ground.width);
 });
 
 test('scene bounds use at least 1024 by 768 when session canvas is smaller', () => {
@@ -135,4 +147,11 @@ test('top view camera distance leaves padding for wide and tall scene bounds', (
   assert.ok(wideDistance > 860);
   assert.ok(tallDistance > 2000);
   assert.equal(getTopViewCameraDistance({ width: 10, height: 10 }, 55, 16 / 9), 500);
+});
+
+test('camera far plane covers the ground at minimum zoom', () => {
+  const bounds = resolveSceneBounds(makeState(), 100);
+
+  assert.equal(getSceneCameraFarPlane({ width: 10, height: 10, size: 10 }, 0.4, 1.2), 5000);
+  assert.ok(getSceneCameraFarPlane(bounds, 0.4, 1.2) > 7000);
 });

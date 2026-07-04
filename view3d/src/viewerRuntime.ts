@@ -17,6 +17,7 @@ export type ShortcutAction =
   | 'label_size_up'
   | 'camera_top'
   | 'camera_follow'
+  | 'camera_roam'
   | 'camera_fit'
   | 'reset_view';
 
@@ -33,13 +34,9 @@ export const DEFAULT_LABELS_VISIBLE = false;
 export const DISPLAY_ONLY_MODE = true;
 
 export function formatStatusSummary(state: ViewerState | null, locale: Locale = 'zh-CN'): string {
-  if (!state) return t(locale, 'summary.counts', { drones: 0, targets: 0, obstacles: 0 });
+  if (!state) return '';
 
-  const parts = [t(locale, 'summary.counts', {
-    drones: state.drones.length,
-    targets: state.targets.length,
-    obstacles: state.obstacles.length
-  })];
+  const parts: string[] = [];
   const progress = state.task_progress || {};
   const taskType = progress.task_type;
 
@@ -99,5 +96,6 @@ export function getShortcutAction(key: string, options: ShortcutOptions = {}): S
   if (key === '1') return 'camera_fit';
   if (key === '2') return 'camera_top';
   if (key === '3') return 'camera_follow';
+  if (key === '4') return 'camera_roam';
   return null;
 }

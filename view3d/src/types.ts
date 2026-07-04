@@ -118,7 +118,7 @@ export type SelectionRef = {
   id: string;
 };
 
-export type CameraMode = 'free' | 'top' | 'follow' | 'fit';
+export type CameraMode = 'free' | 'top' | 'follow' | 'roam' | 'fit';
 
 export type CommandResult = {
   ok: boolean;

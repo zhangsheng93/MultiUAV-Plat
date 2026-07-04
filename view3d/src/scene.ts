@@ -12,7 +12,7 @@ import {
   toGroundShapePoint
 } from './targetVisuals';
 import { getObstacleBaseColor, getObstacleMaterialSettings, getObstacleVisualHeight, getPolygonObstaclePlacement } from './obstacleVisuals';
-import { getTopViewCameraDistance, resolveSceneBounds } from './sceneBounds.ts';
+import { getSceneCameraFarPlane, getSceneGroundDimensions, getTopViewCameraDistance, resolveSceneBounds, type SceneGroundDimensions } from './sceneBounds.ts';
 import { DEFAULT_VISUAL_SCALE_SETTINGS, getAdaptiveBillboardScale, getAdaptiveDroneScale, type VisualScaleSettings } from './renderSettings.ts';
 import { buildSelectionPolygonPoints, getLabelTextureMetrics, getTargetSelectionVisualKind, getUniformLabelBaseScale } from './selectionVisuals.ts';
 import {
@@ -27,6 +27,8 @@ import {
 } from './screenshotExport.ts';
 import { getTopViewCameraUp, getWorldViewCameraUp } from './cameraOrientation.ts';
 import { getSceneAxisEnd, sceneGroundToWorld, worldToScenePosition, worldYToSceneZ } from './coordinateSystem.ts';
+import { DRONE_SHADOW_BASE_RADIUS, DRONE_VISUAL_GROUND_CLEARANCE, getDroneGroundShadowStyle } from './droneVisuals.ts';
+import { getRoamPathLength, getRoamSpeed, getRoamTurnDistance, normalizeRoamPath, sampleRoamPath } from './cameraRoam.ts';
 import type { Locale } from './i18n.ts';
 import { DEFAULT_LABELS_VISIBLE } from './viewerRuntime.ts';
 import type {
@@ -45,17 +47,35 @@ type GroundClickCallback = (point: Position) => void;
 type PointerWorldCallback = (point: Position | null) => void;
 type ZoomScaleCallback = (scale: number) => void;
 export type CoverageDisplayMode = 'surface' | 'points' | 'both';
+export type CameraModeResult = { ok: boolean; message?: string };
+
+type RoamState = {
+  droneId: string;
+  path: Position[];
+  speed: number;
+  distance: number;
+  totalLength: number;
+  turnDistance: number;
+  done: boolean;
+};
 
 type DroneActor = {
   group: THREE.Group;
   label: THREE.Sprite;
   altitudeLine: THREE.Line;
+  groundShadow: THREE.Group;
   targetPosition: THREE.Vector3;
   targetHeading: number;
   status: string;
   accentMaterial: THREE.MeshStandardMaterial;
   rotorGroups: THREE.Group[];
   selectionRadius: number;
+};
+
+type RoamGhostDrone = THREE.Group & {
+  userData: {
+    rotorGroups: THREE.Group[];
+  };
 };
 
 const statusColors: Record<string, number> = {
@@ -76,6 +96,15 @@ const SCENE_CLEAR_COLOR = 0xd7e7f5;
 const GROUND_EDGE_BUFFER = 1.2;
 const MIN_ZOOM_SCALE = 0.4;
 const MAX_ZOOM_SCALE = 5;
+const DRONE_SHADOW_Y = COVERAGE_SURFACE_Y + 0.08;
+const DRONE_ROTOR_OFFSET = 10;
+const DRONE_ARM_LENGTH = 28;
+const DRONE_SHADOW_ARM_LENGTH = 29;
+const FOLLOW_CHASE_EYE = new THREE.Vector3(0, 26, 54);
+const FOLLOW_CHASE_TARGET = new THREE.Vector3(0, 5, -10);
+const FOLLOW_CHASE_DELTA = FOLLOW_CHASE_EYE.clone().sub(FOLLOW_CHASE_TARGET);
+const ROAM_TRAIL_COLOR = 0x22c55e;
+const DEFAULT_TRAIL_COLOR = 0xe5e7eb;
 
 function toScenePosition(position: Position): THREE.Vector3 {
   return worldToScenePosition(position);
@@ -226,9 +255,9 @@ function makeSelectionLine(points: THREE.Vector3[]): THREE.LineLoop {
   return line;
 }
 
-function makeCircularSelectionHighlight(radius: number, y: number, position?: THREE.Vector3): THREE.Mesh {
+function makeCircularSelectionHighlight(radius: number, y: number, position?: THREE.Vector3, thickness = 0.28): THREE.Mesh {
   const mesh = new THREE.Mesh(
-    new THREE.TorusGeometry(Math.max(1, radius), 0.28, 8, 96),
+    new THREE.TorusGeometry(Math.max(1, radius), thickness, 8, 96),
     new THREE.MeshBasicMaterial({
       color: 0xfacc15,
       transparent: true,
@@ -242,6 +271,194 @@ function makeCircularSelectionHighlight(radius: number, y: number, position?: TH
   if (position) mesh.position.copy(position).setY(y);
   mesh.renderOrder = 80;
   return mesh;
+}
+
+function makeDroneShadowMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color: 0x020617,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -5,
+    polygonOffsetUnits: -5
+  });
+}
+
+function makeDroneShadowBox(width: number, depth: number, material: THREE.Material, x = 0, z = 0, rotationY = 0): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, 0.035, depth), material);
+  mesh.position.set(x, 0, z);
+  mesh.rotation.y = rotationY;
+  return mesh;
+}
+
+function makeDroneShadowNose(material: THREE.Material): THREE.Mesh {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute([
+      0, 0, -10.6,
+      -3.4, 0, -5.5,
+      3.4, 0, -5.5
+    ], 3)
+  );
+  geometry.setIndex([0, 1, 2]);
+  geometry.computeVertexNormals();
+  return new THREE.Mesh(geometry, material);
+}
+
+function makeDroneGroundShadow(): THREE.Group {
+  const group = new THREE.Group();
+  const material = makeDroneShadowMaterial();
+
+  group.add(
+    makeDroneShadowBox(6.8, 11.5, material),
+    makeDroneShadowNose(material),
+    makeDroneShadowBox(1.25, DRONE_SHADOW_ARM_LENGTH, material, 0, 0, Math.PI / 4),
+    makeDroneShadowBox(1.25, DRONE_SHADOW_ARM_LENGTH, material, 0, 0, -Math.PI / 4),
+    makeDroneShadowBox(0.42, 10.4, material, -3.8, 0),
+    makeDroneShadowBox(0.42, 10.4, material, 3.8, 0)
+  );
+
+  for (const [x, z] of [
+    [-DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+    [DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+    [-DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET],
+    [DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET]
+  ]) {
+    const rotor = new THREE.Mesh(new THREE.CylinderGeometry(4.45, 4.45, 0.035, 36), material);
+    rotor.position.set(x, 0, z);
+    group.add(rotor);
+  }
+
+  group.renderOrder = 9;
+  group.visible = false;
+  return group;
+}
+
+function makeRoamGhostDrone(): RoamGhostDrone {
+  const rotorGroups: THREE.Group[] = [];
+  const group = new THREE.Group() as RoamGhostDrone;
+  group.userData.rotorGroups = rotorGroups;
+  group.visible = false;
+  group.renderOrder = 30;
+
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x93c5fd,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false,
+    metalness: 0.16,
+    roughness: 0.38
+  });
+  const darkMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    roughness: 0.5
+  });
+  const ringMaterial = new THREE.MeshStandardMaterial({
+    color: 0x22c55e,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    roughness: 0.42
+  });
+  const glassMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0ea5e9,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    metalness: 0.05,
+    roughness: 0.18
+  });
+  const rotorBlurMaterial = new THREE.MeshStandardMaterial({
+    color: 0x020617,
+    transparent: true,
+    opacity: 0.18,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    roughness: 0.28
+  });
+  const bladeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x020617,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    roughness: 0.28
+  });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(6.2, 2.2, 10), bodyMaterial);
+  body.position.y = 0.35;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(2.9, 4.8, 4), bodyMaterial);
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.set(0, 0.35, -7.4);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(2.1, 20, 10), glassMaterial);
+  canopy.scale.set(1.15, 0.36, 0.82);
+  canopy.position.set(0, 1.72, -1.8);
+  const statusLight = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 8), ringMaterial);
+  statusLight.position.set(0, 1.35, -9.75);
+  const tailAccent = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.22, 1.1), ringMaterial);
+  tailAccent.position.set(0, 1.63, 4.4);
+  const cameraPod = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 8), darkMaterial);
+  cameraPod.scale.set(1, 0.72, 0.86);
+  cameraPod.position.set(0, -1.15, -4.3);
+  group.add(body, nose, canopy, statusLight, tailAccent, cameraPod);
+
+  const armA = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.7, DRONE_ARM_LENGTH), darkMaterial);
+  armA.rotation.y = Math.PI / 4;
+  const armB = armA.clone();
+  armB.rotation.y = -Math.PI / 4;
+  group.add(armA, armB);
+
+  for (const [x, z] of [
+    [-DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+    [DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+    [-DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET],
+    [DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET]
+  ]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(4.15, 0.16, 8, 40), ringMaterial);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(x, 1.28, z);
+    const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.15, 1.25, 24), darkMaterial);
+    motor.position.set(x, 0.55, z);
+    const rotorGroup = new THREE.Group();
+    rotorGroup.position.set(x, 1.34, z);
+    rotorGroups.push(rotorGroup);
+
+    const rotorBlur = new THREE.Mesh(new THREE.CylinderGeometry(4.45, 4.45, 0.035, 36), rotorBlurMaterial);
+    rotorBlur.position.y = -0.04;
+    const bladeA = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.08, 0.62), bladeMaterial);
+    bladeA.rotation.y = x * z > 0 ? 0.18 : -0.18;
+    bladeA.position.y = 0.06;
+    const bladeB = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.08, 8.4), bladeMaterial);
+    bladeB.rotation.y = x * z > 0 ? 0.18 : -0.18;
+    bladeB.position.y = 0.1;
+    rotorGroup.add(rotorBlur, bladeA, bladeB);
+    group.add(ring, motor, rotorGroup);
+  }
+
+  for (const x of [-3.8, 3.8]) {
+    const skid = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 10.2, 10), darkMaterial);
+    skid.rotation.x = Math.PI / 2;
+    skid.position.set(x, -2.25, 0);
+    group.add(skid);
+
+    for (const z of [-3.9, 3.9]) {
+      const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.2, 8), darkMaterial);
+      strut.position.set(x, -1.18, z);
+      group.add(strut);
+    }
+  }
+
+  group.traverse((object) => {
+    object.renderOrder = 30;
+  });
+
+  return group;
 }
 
 function configureGrid(grid: THREE.GridHelper): void {
@@ -277,6 +494,8 @@ export class ViewerScene {
   private readonly root = new THREE.Group();
   private readonly droneActors = new Map<string, DroneActor>();
   private readonly trailLines = new Map<string, THREE.Line>();
+  private readonly roamGhostDrone = makeRoamGhostDrone();
+  private roamTrailLine: THREE.Line | null = null;
   private selectionHighlight: THREE.Object3D | null = null;
   private readonly movePreview = new THREE.Mesh(
     new THREE.CylinderGeometry(6, 6, 0.28, 48),
@@ -295,6 +514,7 @@ export class ViewerScene {
   private directClickMove = false;
   private cameraMode: CameraMode = 'free';
   private selectedDroneId: string | null = null;
+  private roamState: RoamState | null = null;
   private trailLength = 80;
   private labelsVisible = DEFAULT_LABELS_VISIBLE;
   private coverageDisplayMode: CoverageDisplayMode = 'surface';
@@ -308,6 +528,8 @@ export class ViewerScene {
   private onGroundClick: GroundClickCallback = () => undefined;
   private onPointerWorld: PointerWorldCallback = () => undefined;
   private onZoomScale: ZoomScaleCallback = () => undefined;
+  private zoomBaseDistance = 1024;
+  private zoomScale = 1;
   private lastNotifiedZoomScale = 0;
 
   constructor(host: HTMLElement) {
@@ -344,11 +566,12 @@ export class ViewerScene {
     this.axisGuide.frustumCulled = false;
     this.movePreview.position.y = 0.14;
     this.movePreview.visible = false;
-    this.root.add(this.movePreview);
+    this.root.add(this.movePreview, this.roamGhostDrone);
     this.scene.add(this.ground, this.grid, this.axisGuide, this.root);
 
     this.renderer.domElement.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
     this.renderer.domElement.addEventListener('pointermove', (event) => this.handlePointerMove(event));
+    this.renderer.domElement.addEventListener('wheel', (event) => this.handleWheel(event), { passive: false });
     window.addEventListener('resize', () => this.resize());
     this.resize();
     this.animate();
@@ -376,17 +599,40 @@ export class ViewerScene {
     this.directClickMove = enabled;
   }
 
-  setCameraMode(mode: CameraMode): void {
+  getCameraMode(): CameraMode {
+    return this.cameraMode;
+  }
+
+  setCameraMode(mode: CameraMode): CameraModeResult {
+    if (mode === 'follow' || mode === 'roam') {
+      if (!this.selectedDroneId || !this.getSelectedDrone()) {
+        return { ok: false, message: '请先选择一架无人机。' };
+      }
+    }
+
+    if (mode === 'roam') {
+      const result = this.startRoam();
+      if (!result.ok) return result;
+    } else {
+      this.stopRoamVisuals();
+    }
+
     this.cameraMode = mode;
     if (mode === 'top') {
+      this.controls.enabled = true;
       this.fitTopView();
     } else if (mode === 'fit') {
+      this.controls.enabled = true;
       this.fitAll();
       this.cameraMode = 'free';
     } else if (mode === 'free') {
       this.camera.up.copy(getWorldViewCameraUp());
       this.controls.enabled = true;
+    } else if (mode === 'follow' || mode === 'roam') {
+      this.controls.enabled = false;
+      this.camera.up.copy(getWorldViewCameraUp());
     }
+    return { ok: true };
   }
 
   setTrailLength(length: number): void {
@@ -407,6 +653,7 @@ export class ViewerScene {
   clearSelection(): void {
     this.selected = null;
     this.selectedDroneId = null;
+    this.stopFirstPersonCamera();
     this.selectionCycleKey = '';
     this.selectionCycleIndex = 0;
     this.selectionCycleCandidates = [];
@@ -415,8 +662,12 @@ export class ViewerScene {
   }
 
   setSelection(selection: SelectionRef | null): void {
+    const previousDroneId = this.selectedDroneId;
     this.selected = selection;
     this.selectedDroneId = selection?.kind === 'drone' ? selection.id : null;
+    if (this.cameraMode === 'roam' && previousDroneId !== this.selectedDroneId) {
+      this.stopFirstPersonCamera();
+    }
     this.selectionCycleKey = '';
     this.selectionCycleIndex = 0;
     this.selectionCycleCandidates = selection ? [selection] : [];
@@ -444,7 +695,11 @@ export class ViewerScene {
     const currentIndex = this.selectionCycleCandidates.findIndex((item) => item.kind === this.selected?.kind && item.id === this.selected?.id);
     const nextSelection = this.selectionCycleCandidates[((currentIndex < 0 ? -1 : currentIndex) + 1) % this.selectionCycleCandidates.length];
     this.selected = nextSelection;
+    const previousDroneId = this.selectedDroneId;
     this.selectedDroneId = nextSelection.kind === 'drone' ? nextSelection.id : null;
+    if (this.cameraMode === 'roam' && previousDroneId !== this.selectedDroneId) {
+      this.stopFirstPersonCamera();
+    }
     if (this.state) this.renderState(this.state);
     this.onSelect(nextSelection);
     return nextSelection;
@@ -458,14 +713,21 @@ export class ViewerScene {
   }
 
   zoomBy(scale: number): void {
-    this.setZoomScale(this.getZoomScale() / scale);
+    this.setZoomScale(this.zoomScale / scale);
   }
 
   setZoomScale(scale: number): void {
     const safeScale = THREE.MathUtils.clamp(scale, MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+    this.zoomScale = safeScale;
+    if (this.cameraMode === 'follow' || this.cameraMode === 'roam') {
+      this.updateFirstPersonCamera(0);
+      this.notifyZoomScaleChanged(true);
+      return;
+    }
+
     const direction = this.camera.position.clone().sub(this.controls.target);
     if (direction.lengthSq() <= 0.0001) return;
-    const baseDistance = this.state ? resolveSceneBounds(this.state).size : 1024;
+    const baseDistance = this.getZoomBaseDistance();
     direction.setLength(baseDistance / safeScale);
     this.camera.position.copy(this.controls.target.clone().add(direction));
     this.controls.update();
@@ -473,6 +735,9 @@ export class ViewerScene {
   }
 
   resetView(): void {
+    this.stopRoamVisuals();
+    this.cameraMode = 'free';
+    this.controls.enabled = true;
     this.fitAll();
   }
 
@@ -518,9 +783,7 @@ export class ViewerScene {
     this.addTaskVisuals(state);
     this.droneActors.forEach((actor) => this.selectable.push(actor.group));
     this.refreshSelectionHighlight();
-    if (this.cameraMode === 'follow' && this.selectedDroneId) {
-      this.followDrone(this.selectedDroneId);
-    } else if (wasEmpty) {
+    if (wasEmpty && this.cameraMode !== 'follow' && this.cameraMode !== 'roam') {
       this.fitAll();
     }
   }
@@ -540,16 +803,28 @@ export class ViewerScene {
 
   private animate(): void {
     this.animationFrame = requestAnimationFrame(() => this.animate());
-    this.updateDroneActors(this.clock.getDelta());
+    const deltaSeconds = this.clock.getDelta();
+    this.updateDroneActors(deltaSeconds);
+    this.updateFirstPersonCamera(deltaSeconds);
     this.updateAdaptiveVisualScale();
-    this.controls.update();
-    this.clampCameraDistanceToZoomBounds();
-    this.notifyZoomScaleChanged();
+    if (this.cameraMode === 'follow' || this.cameraMode === 'roam') {
+      this.notifyZoomScaleChanged();
+    } else {
+      this.controls.update();
+      this.clampCameraDistanceToZoomBounds();
+      this.notifyZoomScaleChanged();
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
   private getZoomBaseDistance(): number {
-    return this.state ? resolveSceneBounds(this.state).size : 1024;
+    return this.zoomBaseDistance;
+  }
+
+  private resetZoomBaseDistanceToCurrentView(): void {
+    this.zoomBaseDistance = Math.max(1, this.camera.position.distanceTo(this.controls.target));
+    this.zoomScale = 1;
+    this.notifyZoomScaleChanged(true);
   }
 
   private clampCameraDistanceToZoomBounds(): void {
@@ -566,9 +841,14 @@ export class ViewerScene {
   }
 
   private getZoomScale(): number {
+    if (this.cameraMode === 'follow' || this.cameraMode === 'roam') {
+      return this.zoomScale;
+    }
+
     const baseDistance = this.getZoomBaseDistance();
     const distance = Math.max(1, this.camera.position.distanceTo(this.controls.target));
-    return THREE.MathUtils.clamp(baseDistance / distance, MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+    this.zoomScale = THREE.MathUtils.clamp(baseDistance / distance, MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+    return this.zoomScale;
   }
 
   private notifyZoomScaleChanged(force = false): void {
@@ -648,26 +928,38 @@ export class ViewerScene {
 
   private updateGround(state: ViewerState): void {
     const bounds = resolveSceneBounds(state);
-    const size = bounds.size * GROUND_EDGE_BUFFER;
+    this.updateCameraDepthRange(bounds);
+    const groundDimensions = getSceneGroundDimensions(bounds, GROUND_EDGE_BUFFER);
     this.ground.geometry.dispose();
-    this.ground.geometry = new THREE.PlaneGeometry(size, size);
+    this.ground.geometry = new THREE.PlaneGeometry(groundDimensions.width, groundDimensions.height);
     this.ground.position.set(bounds.centerX, 0, worldYToSceneZ(bounds.centerY));
     this.grid.geometry.dispose();
-    this.grid.geometry = new THREE.BufferGeometry().copy(new THREE.GridHelper(size, Math.max(12, Math.round(size / 32))).geometry);
+    this.grid.geometry = new THREE.BufferGeometry().copy(
+      new THREE.GridHelper(groundDimensions.baseSize, Math.max(12, Math.round(groundDimensions.baseSize / 32))).geometry
+    );
+    this.grid.scale.set(groundDimensions.gridScaleX, 1, groundDimensions.gridScaleZ);
     this.grid.position.set(bounds.centerX, 0.32, worldYToSceneZ(bounds.centerY));
     configureGrid(this.grid);
-    this.updateAxisGuide(bounds, size);
+    this.updateAxisGuide(bounds, groundDimensions);
   }
 
-  private updateAxisGuide(bounds: ReturnType<typeof resolveSceneBounds>, groundSize: number): void {
+  private updateCameraDepthRange(bounds: ReturnType<typeof resolveSceneBounds>): void {
+    const far = getSceneCameraFarPlane(bounds, MIN_ZOOM_SCALE, GROUND_EDGE_BUFFER);
+    if (Math.abs(this.camera.far - far) < 1) return;
+    this.camera.far = far;
+    this.camera.updateProjectionMatrix();
+    this.scene.fog = new THREE.Fog(SCENE_CLEAR_COLOR, Math.max(4200, far * 0.35), Math.max(14000, far * 0.92));
+  }
+
+  private updateAxisGuide(bounds: ReturnType<typeof resolveSceneBounds>, groundDimensions: SceneGroundDimensions): void {
     [...this.axisGuide.children].forEach((child) => {
       this.axisGuide.remove(child);
       disposeObject(child);
     });
     const length = THREE.MathUtils.clamp(bounds.size * 0.09, 72, 150);
     const inset = Math.max(length * 0.72, bounds.size * 0.045);
-    const groundMinX = bounds.centerX - groundSize / 2;
-    const groundMinY = bounds.centerY - groundSize / 2;
+    const groundMinX = bounds.centerX - groundDimensions.width / 2;
+    const groundMinY = bounds.centerY - groundDimensions.height / 2;
     const origin = new THREE.Vector3(groundMinX + inset, 4, worldYToSceneZ(groundMinY + inset));
     this.axisGuide.position.copy(origin);
 
@@ -691,7 +983,9 @@ export class ViewerScene {
     for (const [id, actor] of this.droneActors) {
       if (!activeIds.has(id)) {
         this.root.remove(actor.group);
+        this.root.remove(actor.groundShadow);
         disposeObject(actor.group);
+        disposeObject(actor.groundShadow);
         this.droneActors.delete(id);
       }
     }
@@ -710,7 +1004,7 @@ export class ViewerScene {
     if (!actor) {
       actor = this.createDroneActor(drone);
       this.droneActors.set(drone.id, actor);
-      this.root.add(actor.group);
+      this.root.add(actor.groundShadow, actor.group);
     }
 
     actor.targetPosition.copy(toScenePosition(drone.position));
@@ -726,6 +1020,7 @@ export class ViewerScene {
     actor.altitudeLine.geometry = new THREE.BufferGeometry().setFromPoints(altitudePoints);
 
     this.updateDroneLabel(actor, drone);
+    this.updateDroneGroundShadow(actor);
 
     this.updateTrail(drone.id, path);
   }
@@ -735,6 +1030,9 @@ export class ViewerScene {
     group.position.copy(toScenePosition(drone.position));
     group.rotation.y = -THREE.MathUtils.degToRad(drone.heading || 0);
     group.userData = { selectable: true, kind: 'drone' satisfies SelectableKind, id: drone.id };
+    const airframe = new THREE.Group();
+    airframe.position.y = DRONE_VISUAL_GROUND_CLEARANCE;
+    group.add(airframe);
 
     const color = statusColors[drone.status] || 0x60a5fa;
     const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xe5e7eb, metalness: 0.32, roughness: 0.34 });
@@ -766,41 +1064,46 @@ export class ViewerScene {
     const fuselage = new THREE.Mesh(new THREE.BoxGeometry(6.2, 2.2, 10), bodyMaterial);
     fuselage.position.y = 0.35;
     fuselage.castShadow = true;
-    group.add(fuselage);
+    airframe.add(fuselage);
 
     const nose = new THREE.Mesh(new THREE.ConeGeometry(2.9, 4.8, 4), bodyMaterial);
     nose.rotation.x = -Math.PI / 2;
     nose.position.set(0, 0.35, -7.4);
     nose.castShadow = true;
-    group.add(nose);
+    airframe.add(nose);
 
     const canopy = new THREE.Mesh(new THREE.SphereGeometry(2.1, 20, 10), glassMaterial);
     canopy.scale.set(1.15, 0.36, 0.82);
     canopy.position.set(0, 1.72, -1.8);
     canopy.castShadow = true;
-    group.add(canopy);
+    airframe.add(canopy);
 
     const statusLight = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 8), accentMaterial);
     statusLight.position.set(0, 1.35, -9.75);
-    group.add(statusLight);
+    airframe.add(statusLight);
 
     const tailAccent = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.22, 1.1), accentMaterial);
     tailAccent.position.set(0, 1.63, 4.4);
-    group.add(tailAccent);
+    airframe.add(tailAccent);
 
     const cameraPod = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 8), darkMaterial);
     cameraPod.scale.set(1, 0.72, 0.86);
     cameraPod.position.set(0, -1.15, -4.3);
     cameraPod.castShadow = true;
-    group.add(cameraPod);
+    airframe.add(cameraPod);
 
-    const armA = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.7, 34), darkMaterial);
+    const armA = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.7, DRONE_ARM_LENGTH), darkMaterial);
     armA.rotation.y = Math.PI / 4;
     const armB = armA.clone();
     armB.rotation.y = -Math.PI / 4;
-    group.add(armA, armB);
+    airframe.add(armA, armB);
 
-    for (const [x, z] of [[-12, -12], [12, -12], [-12, 12], [12, 12]]) {
+    for (const [x, z] of [
+      [-DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+      [DRONE_ROTOR_OFFSET, -DRONE_ROTOR_OFFSET],
+      [-DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET],
+      [DRONE_ROTOR_OFFSET, DRONE_ROTOR_OFFSET]
+    ]) {
       const rotorGroup = new THREE.Group();
       rotorGroup.position.set(x, 1.34, z);
       rotorGroups.push(rotorGroup);
@@ -808,13 +1111,13 @@ export class ViewerScene {
       const motor = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.15, 1.25, 24), darkMaterial);
       motor.position.set(x, 0.55, z);
       motor.castShadow = true;
-      group.add(motor);
+      airframe.add(motor);
 
       const rotorRing = new THREE.Mesh(new THREE.TorusGeometry(4.15, 0.16, 8, 40), ringMaterial);
       rotorRing.rotation.x = Math.PI / 2;
       rotorRing.position.set(x, 1.28, z);
       rotorRing.castShadow = true;
-      group.add(rotorRing);
+      airframe.add(rotorRing);
 
       const bladeA = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.08, 0.62), propMaterial);
       bladeA.rotation.y = x * z > 0 ? 0.18 : -0.18;
@@ -822,7 +1125,7 @@ export class ViewerScene {
       bladeB.rotation.y = x * z > 0 ? 0.18 : -0.18;
       bladeB.position.y = 0.02;
       rotorGroup.add(bladeA, bladeB);
-      group.add(rotorGroup);
+      airframe.add(rotorGroup);
     }
 
     for (const x of [-3.8, 3.8]) {
@@ -830,13 +1133,13 @@ export class ViewerScene {
       skid.rotation.x = Math.PI / 2;
       skid.position.set(x, -2.25, 0);
       skid.castShadow = true;
-      group.add(skid);
+      airframe.add(skid);
 
       for (const z of [-3.9, 3.9]) {
         const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.2, 8), darkMaterial);
         strut.position.set(x, -1.18, z);
         strut.castShadow = true;
-        group.add(strut);
+        airframe.add(strut);
       }
     }
 
@@ -845,6 +1148,10 @@ export class ViewerScene {
       new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 })
     );
     group.add(line);
+
+    const groundShadow = makeDroneGroundShadow();
+    groundShadow.position.set(group.position.x, DRONE_SHADOW_Y, group.position.z);
+
     const label = makeLabel(formatDroneInfoLines(drone, false, this.locale));
     label.position.set(11, 20, 0);
     group.add(label);
@@ -853,6 +1160,7 @@ export class ViewerScene {
       group,
       label,
       altitudeLine: line,
+      groundShadow,
       targetPosition: toScenePosition(drone.position),
       targetHeading: group.rotation.y,
       status: drone.status,
@@ -884,6 +1192,9 @@ export class ViewerScene {
   private updateTrail(droneId: string, path: Position[]): void {
     const trail = this.getTrailPoints(path).map(toScenePosition);
     const existingTrail = this.trailLines.get(droneId);
+    const isRoamingDrone = this.roamState?.droneId === droneId;
+    const trailColor = isRoamingDrone ? ROAM_TRAIL_COLOR : DEFAULT_TRAIL_COLOR;
+    const trailOpacity = isRoamingDrone ? 0.88 : 0.24;
     if (trail.length <= 1) {
       if (existingTrail) {
         this.root.remove(existingTrail);
@@ -897,9 +1208,9 @@ export class ViewerScene {
       existingTrail.geometry.dispose();
       existingTrail.geometry = new THREE.BufferGeometry().setFromPoints(trail);
       const material = existingTrail.material as THREE.LineBasicMaterial;
-      material.color.setHex(0xe5e7eb);
+      material.color.setHex(trailColor);
       material.transparent = true;
-      material.opacity = 0.24;
+      material.opacity = trailOpacity;
       material.depthWrite = false;
       material.depthTest = true;
       material.needsUpdate = true;
@@ -909,15 +1220,54 @@ export class ViewerScene {
     const trailLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(trail),
       new THREE.LineBasicMaterial({
-        color: 0xe5e7eb,
+        color: trailColor,
         transparent: true,
-        opacity: 0.24,
+        opacity: trailOpacity,
         depthWrite: false,
         depthTest: true
       })
     );
     this.trailLines.set(droneId, trailLine);
     this.root.add(trailLine);
+  }
+
+  private updateRoamTrail(): void {
+    if (!this.roamState) {
+      this.clearRoamTrail();
+      return;
+    }
+
+    const points = this.roamState.path.map(toScenePosition);
+    if (points.length <= 1) {
+      this.clearRoamTrail();
+      return;
+    }
+
+    if (this.roamTrailLine) {
+      this.roamTrailLine.geometry.dispose();
+      this.roamTrailLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
+      return;
+    }
+
+    this.roamTrailLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({
+        color: ROAM_TRAIL_COLOR,
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        depthTest: true
+      })
+    );
+    this.roamTrailLine.renderOrder = 18;
+    this.root.add(this.roamTrailLine);
+  }
+
+  private clearRoamTrail(): void {
+    if (!this.roamTrailLine) return;
+    this.root.remove(this.roamTrailLine);
+    disposeObject(this.roamTrailLine);
+    this.roamTrailLine = null;
   }
 
   private getTrailPoints(path: Position[]): Position[] {
@@ -927,16 +1277,171 @@ export class ViewerScene {
     return path.slice(-this.trailLength);
   }
 
+  private startRoam(): CameraModeResult {
+    const drone = this.getSelectedDrone();
+    if (!drone) return { ok: false, message: '请先选择一架无人机。' };
+    const path = normalizeRoamPath(this.state?.paths[drone.id] || [], drone.position);
+    const totalLength = getRoamPathLength(path);
+    if (path.length < 2 || totalLength <= 0) {
+      return { ok: false, message: '该无人机没有可漫游路径。' };
+    }
+
+    const speed = getRoamSpeed(drone);
+    this.roamState = {
+      droneId: drone.id,
+      path,
+      speed,
+      distance: 0,
+      totalLength,
+      turnDistance: getRoamTurnDistance(speed),
+      done: false
+    };
+    this.updateRoamTrail();
+    this.updateTrail(drone.id, this.state?.paths[drone.id] || []);
+    return { ok: true };
+  }
+
+  private stopFirstPersonCamera(): void {
+    this.stopRoamVisuals();
+    if (this.cameraMode === 'follow' || this.cameraMode === 'roam') {
+      this.cameraMode = 'free';
+      this.controls.enabled = true;
+      this.camera.up.copy(getWorldViewCameraUp());
+    }
+  }
+
+  private stopRoamVisuals(): void {
+    const previousRoamDroneId = this.roamState?.droneId;
+    this.roamState = null;
+    this.roamGhostDrone.visible = false;
+    this.clearRoamTrail();
+    if (previousRoamDroneId && this.state) {
+      this.updateTrail(previousRoamDroneId, this.state.paths[previousRoamDroneId] || []);
+    }
+  }
+
   private updateDroneActors(deltaSeconds: number): void {
     for (const actor of this.droneActors.values()) {
       actor.group.position.lerp(actor.targetPosition, Math.min(1, deltaSeconds * 6));
       actor.group.rotation.y = THREE.MathUtils.lerp(actor.group.rotation.y, actor.targetHeading, Math.min(1, deltaSeconds * 8));
+      this.updateDroneGroundShadow(actor);
 
       const rotorSpeed = this.getRotorSpeed(actor.status);
       actor.rotorGroups.forEach((rotorGroup, index) => {
         rotorGroup.rotation.y += rotorSpeed * deltaSeconds * (index % 2 === 0 ? 1 : -1);
       });
     }
+
+    if (this.roamGhostDrone.visible) {
+      const rotorSpeed = this.getRotorSpeed('moving');
+      this.roamGhostDrone.userData.rotorGroups.forEach((rotorGroup, index) => {
+        rotorGroup.rotation.y += rotorSpeed * deltaSeconds * (index % 2 === 0 ? 1 : -1);
+      });
+    }
+  }
+
+  private updateFirstPersonCamera(deltaSeconds: number): void {
+    if (this.cameraMode === 'follow') {
+      if (!this.selectedDroneId) return;
+      this.followDrone(this.selectedDroneId);
+    } else if (this.cameraMode === 'roam') {
+      this.updateRoamCamera(deltaSeconds);
+    }
+  }
+
+  private setDroneChaseCamera(position: THREE.Vector3, rotationY: number): void {
+    const pivot = new THREE.Object3D();
+    pivot.position.copy(position);
+    pivot.rotation.y = rotationY;
+    const target = pivot.localToWorld(FOLLOW_CHASE_TARGET.clone());
+    const scaledEye = FOLLOW_CHASE_TARGET.clone().add(FOLLOW_CHASE_DELTA.clone().divideScalar(this.zoomScale));
+    const eye = pivot.localToWorld(scaledEye);
+    this.camera.up.copy(getWorldViewCameraUp());
+    this.camera.position.copy(eye);
+    this.controls.target.copy(target);
+    this.camera.lookAt(target);
+  }
+
+  private setPathChaseCamera(position: THREE.Vector3, forward: THREE.Vector3): void {
+    const safeForward = forward.clone().normalize();
+    const target = position.clone()
+      .add(safeForward.clone().multiplyScalar(-FOLLOW_CHASE_TARGET.z))
+      .add(new THREE.Vector3(0, FOLLOW_CHASE_TARGET.y, 0));
+    const eye = target.clone()
+      .add(safeForward.clone().multiplyScalar(-FOLLOW_CHASE_DELTA.z / this.zoomScale))
+      .add(new THREE.Vector3(0, FOLLOW_CHASE_DELTA.y / this.zoomScale, 0));
+    this.camera.up.copy(getWorldViewCameraUp());
+    this.camera.position.copy(eye);
+    this.controls.target.copy(target);
+    this.camera.lookAt(target);
+  }
+
+  private updateRoamCamera(deltaSeconds: number): void {
+    const roam = this.roamState;
+    if (!roam) return;
+    if (!roam.done) {
+      roam.distance = Math.min(roam.totalLength, roam.distance + roam.speed * deltaSeconds);
+    }
+
+    const sample = sampleRoamPath(roam.path, roam.distance, roam.turnDistance);
+    if (!sample) {
+      roam.done = true;
+      this.hideRoamGhost();
+      return;
+    }
+
+    roam.done = sample.done;
+    const position = toScenePosition(sample.position);
+    const direction = worldToScenePosition(sample.forwardHint);
+    if (direction.lengthSq() <= 0.0001 && sample.segmentIndex > 0) {
+      direction.copy(position.clone().sub(toScenePosition(roam.path[sample.segmentIndex])));
+    }
+    if (direction.lengthSq() <= 0.0001) {
+      const actor = this.droneActors.get(roam.droneId);
+      if (actor) {
+        if (roam.done) this.hideRoamGhost();
+        else this.updateRoamGhost(position, actor.group.rotation.y);
+        this.setDroneChaseCamera(position, actor.group.rotation.y);
+      }
+      return;
+    }
+
+    const rotationY = this.getRotationYForForward(direction);
+    if (roam.done) this.hideRoamGhost();
+    else this.updateRoamGhost(position, rotationY);
+    this.setPathChaseCamera(position, direction);
+  }
+
+  private getRotationYForForward(forward: THREE.Vector3): number {
+    const normalized = forward.clone().normalize();
+    return Math.atan2(-normalized.x, -normalized.z);
+  }
+
+  private updateRoamGhost(position: THREE.Vector3, rotationY: number): void {
+    this.roamGhostDrone.visible = this.cameraMode === 'roam';
+    this.roamGhostDrone.position.copy(position);
+    this.roamGhostDrone.rotation.y = rotationY;
+  }
+
+  private hideRoamGhost(): void {
+    this.roamGhostDrone.visible = false;
+  }
+
+  private updateDroneGroundShadow(actor: DroneActor): void {
+    const style = getDroneGroundShadowStyle(actor.group.position.y);
+    actor.groundShadow.position.set(actor.group.position.x, DRONE_SHADOW_Y, actor.group.position.z);
+    actor.groundShadow.rotation.y = actor.group.rotation.y;
+    actor.groundShadow.visible = style.visible;
+    if (!style.visible) return;
+
+    const scale = (style.radius / DRONE_SHADOW_BASE_RADIUS) * this.visualScaleSettings.drone;
+    actor.groundShadow.scale.setScalar(scale);
+    actor.groundShadow.traverse((child) => {
+      const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+      if (!material) return;
+      material.opacity = style.opacity;
+      material.needsUpdate = true;
+    });
   }
 
   private updateAdaptiveVisualScale(): void {
@@ -969,8 +1474,12 @@ export class ViewerScene {
 
   private clearStaticObjects(): void {
     this.clearSelectionHighlight();
-    const persistent = new Set<THREE.Object3D>([this.movePreview]);
-    this.droneActors.forEach((actor) => persistent.add(actor.group));
+    const persistent = new Set<THREE.Object3D>([this.movePreview, this.roamGhostDrone]);
+    if (this.roamTrailLine) persistent.add(this.roamTrailLine);
+    this.droneActors.forEach((actor) => {
+      persistent.add(actor.group);
+      persistent.add(actor.groundShadow);
+    });
     this.trailLines.forEach((trail) => persistent.add(trail));
     [...this.root.children].forEach((child) => {
       if (!persistent.has(child)) {
@@ -1006,7 +1515,12 @@ export class ViewerScene {
     const worldCenter = new THREE.Vector3();
     selectedObject.getWorldPosition(worldCenter);
 
-    this.selectionHighlight = shapeHighlight || makeCircularSelectionHighlight(radius, this.selected.kind === 'drone' ? Math.max(2.8, worldCenter.y + 3.2) : 1.25, worldCenter);
+    this.selectionHighlight = shapeHighlight || makeCircularSelectionHighlight(
+      radius,
+      this.selected.kind === 'drone' ? Math.max(2.8, worldCenter.y + 3.2) : 1.25,
+      worldCenter,
+      this.selected.kind === 'drone' ? 0.44 : 0.28
+    );
     this.root.add(this.selectionHighlight);
   }
 
@@ -1251,9 +1765,20 @@ export class ViewerScene {
       kind: candidate.userData.kind,
       id: candidate.userData.id
     };
+    const previousDroneId = this.selectedDroneId;
     this.selectedDroneId = this.selected.kind === 'drone' ? this.selected.id : null;
+    if (this.cameraMode === 'roam' && previousDroneId !== this.selectedDroneId) {
+      this.stopFirstPersonCamera();
+    }
     if (this.state) this.renderState(this.state);
     this.onSelect(this.selected);
+  }
+
+  private handleWheel(event: WheelEvent): void {
+    if (this.cameraMode !== 'follow' && this.cameraMode !== 'roam') return;
+    event.preventDefault();
+    const scaleStep = event.deltaY > 0 ? 0.88 : 1.14;
+    this.setZoomScale(this.zoomScale * scaleStep);
   }
 
   private pickSelectableCandidate(event: PointerEvent): THREE.Object3D | null {
@@ -1317,6 +1842,7 @@ export class ViewerScene {
     this.camera.position.set(center.x + size * 0.28, size * 0.72, center.z + size * 0.82);
     this.camera.lookAt(center);
     this.controls.update();
+    this.resetZoomBaseDistanceToCurrentView();
   }
 
   private fitTopView(): void {
@@ -1328,14 +1854,12 @@ export class ViewerScene {
     this.camera.position.set(center.x, center.y + distance, center.z);
     this.camera.lookAt(center);
     this.controls.update();
+    this.resetZoomBaseDistanceToCurrentView();
   }
 
   private followDrone(droneId: string): void {
-    const drone = this.state?.drones.find((item) => item.id === droneId);
-    if (!drone) return;
-    this.camera.up.copy(getWorldViewCameraUp());
-    const pos = toScenePosition(drone.position);
-    this.controls.target.lerp(pos, 0.18);
-    this.camera.position.lerp(pos.clone().add(new THREE.Vector3(-80, 70, -110)), 0.12);
+    const actor = this.droneActors.get(droneId);
+    if (!actor) return;
+    this.setDroneChaseCamera(actor.group.position, actor.group.rotation.y);
   }
 }

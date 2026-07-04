@@ -12,6 +12,14 @@ export type SceneBounds = {
   size: number;
 };
 
+export type SceneGroundDimensions = {
+  width: number;
+  height: number;
+  baseSize: number;
+  gridScaleX: number;
+  gridScaleZ: number;
+};
+
 type BoundsDraft = {
   minX: number;
   minY: number;
@@ -137,6 +145,20 @@ export function resolveSceneBounds(state: ViewerState, padding = 120): SceneBoun
   return finishBounds(bounds, padding, minWidth, minHeight);
 }
 
+export function getSceneGroundDimensions(bounds: Pick<SceneBounds, 'width' | 'height'>, edgeBuffer: number): SceneGroundDimensions {
+  const safeBuffer = Math.max(0, edgeBuffer);
+  const width = Math.max(1, bounds.width * safeBuffer);
+  const height = Math.max(1, bounds.height * safeBuffer);
+  const baseSize = Math.max(width, height);
+  return {
+    width,
+    height,
+    baseSize,
+    gridScaleX: width / baseSize,
+    gridScaleZ: height / baseSize
+  };
+}
+
 export function getTopViewCameraDistance(bounds: Pick<SceneBounds, 'width' | 'height'>, verticalFovDegrees: number, aspect: number): number {
   const safeAspect = Math.max(0.1, aspect);
   const fovRadians = (Math.max(1, verticalFovDegrees) * Math.PI) / 180;
@@ -144,4 +166,16 @@ export function getTopViewCameraDistance(bounds: Pick<SceneBounds, 'width' | 'he
   const distanceForHeight = bounds.height / (2 * halfFovTangent);
   const distanceForWidth = bounds.width / (2 * halfFovTangent * safeAspect);
   return Math.max(500, Math.max(distanceForHeight, distanceForWidth) * 1.35);
+}
+
+export function getSceneCameraFarPlane(
+  bounds: Pick<SceneBounds, 'width' | 'height' | 'size'>,
+  minZoomScale: number,
+  groundEdgeBuffer: number
+): number {
+  const safeMinZoomScale = Math.max(0.1, minZoomScale);
+  const safeGroundEdgeBuffer = Math.max(1, groundEdgeBuffer);
+  const maxZoomDistance = bounds.size / safeMinZoomScale;
+  const groundDiagonal = Math.hypot(bounds.width * safeGroundEdgeBuffer, bounds.height * safeGroundEdgeBuffer);
+  return Math.max(5000, Math.ceil(maxZoomDistance + groundDiagonal + 2000));
 }

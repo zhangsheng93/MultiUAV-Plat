@@ -35,14 +35,14 @@ MultiUAV-Plat addresses this gap with three main research contributions:
 - **MultiUAV-Plat Benchmark**: a reproducible benchmark of executable multi-UAV missions with natural-language tasks and hidden validation checks.
 - **MultiUAV-Agent Workflow**: a task-specific workflow for multi-UAV planning, execution, verification, and replanning, implemented in this repository as Agent4Drone.
 
-The public repository also includes **MultiUAV-Plat Web 3D Viewer**, a standalone Three.js/Vite viewer for live mission visualization, contributed by [@Damonhellokitty](https://github.com/Damonhellokitty).
+The public repository also includes **MultiUAV-Plat Web 3D Viewer**, a standalone Three.js/Vite viewer for live 3D mission visualization, contributed by [@Damonhellokitty](https://github.com/Damonhellokitty). The current viewer defaults to backend live data, falls back to a local demo mission, supports bilingual UI switching, and adds follow/roam camera modes for inspecting UAV trajectories.
 
 ## 🧭 Key Features
 
 - 🛰️ RESTful APIs for mission-level UAV control, sensing, session management, and validation.
 - 🔐 Role-based access control and agent-facing observations that prevent privileged simulator access.
 - ✅ Hidden task validators for reproducible closed-loop evaluation.
-- 🗺️ 2D and 3D visualization: 2D views support fast mission overview and scenario editing, while the 3D viewer provides immersive inspection of UAV trajectories, altitude, coverage, targets, and obstacles.
+- 🗺️ 2D and 3D visualization: 2D views support fast mission overview and scenario editing, while the 3D viewer provides immersive inspection of UAV trajectories, altitude, coverage, targets, obstacles, minimap context, follow/roam cameras, and screenshot export.
 - 🎛️ GUI controller for session creation, editing, import/export, and monitoring.
 - 🤖 MultiUAV-Agent Workflow covering observation, memory, task understanding, planning, execution, verification, and replanning, with Agent4Drone as the reference implementation.
 - 📊 Benchmark scenarios covering Target Assignment, Area Search, and Area Assignment and Patrol.
@@ -121,7 +121,7 @@ The controller connects to the local server and provides session management, sce
 
 ### 3. Launch the Web 3D viewer (optional)
 
-Start the simulation server first. For viewer setup, backend mode, demo mode, configuration, build, and test details, see the [view3d README](view3d/README.md).
+Start the simulation server first. For viewer setup, backend mode, demo mode, configuration, controls, optional development tools, build, and test details, see the [view3d README](view3d/README.md).
 
 ```bash
 cd view3d

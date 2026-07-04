@@ -76,8 +76,7 @@ ui.bindScreenshot((format) => {
 ui.bindDisplayLayers((mode) => scene.setCoverageDisplayMode(mode));
 
 ui.bindCamera((mode: CameraMode) => {
-  scene.setCameraMode(mode);
-  ui.setCameraActivity(mode);
+  handleCameraModeRequest(mode);
 });
 ui.bindTrail((length) => {
   replay.setTrailLength(length);
@@ -167,6 +166,10 @@ document.addEventListener('click', (event) => {
 
 function handleShortcutAction(action: ShortcutAction): void {
   if (action === 'clear_selection') {
+    if (scene.getCameraMode() === 'roam') {
+      exitRoamMode();
+      return;
+    }
     clearActiveSelection();
   } else if (action === 'toggle_labels') {
     labelsVisible = !labelsVisible;
@@ -190,14 +193,13 @@ function handleShortcutAction(action: ShortcutAction): void {
   } else if (action === 'label_size_up') {
     stepLabelScale(1);
   } else if (action === 'camera_top') {
-    scene.setCameraMode('top');
-    ui.setCameraActivity('top');
+    handleCameraModeRequest('top');
   } else if (action === 'camera_follow') {
-    scene.setCameraMode('follow');
-    ui.setCameraActivity('follow');
+    handleCameraModeRequest('follow');
+  } else if (action === 'camera_roam') {
+    handleCameraModeRequest('roam');
   } else if (action === 'camera_fit') {
-    scene.setCameraMode('fit');
-    ui.setCameraActivity('fit');
+    handleCameraModeRequest('fit');
   } else if (action === 'pan_up') {
     scene.panBy(0, 24);
   } else if (action === 'pan_down') {
@@ -208,6 +210,32 @@ function handleShortcutAction(action: ShortcutAction): void {
     scene.panBy(24, 0);
   }
   refreshMiniMap();
+}
+
+function exitRoamMode(): void {
+  applyCameraMode('fit');
+  refreshMiniMap();
+}
+
+function handleCameraModeRequest(mode: CameraMode): void {
+  if (mode === 'roam' && scene.getCameraMode() === 'roam') {
+    exitRoamMode();
+    return;
+  }
+  applyCameraMode(mode);
+}
+
+function applyCameraMode(mode: CameraMode): void {
+  const result = scene.setCameraMode(mode);
+  if (result.ok) {
+    if (mode === 'follow' || mode === 'roam') {
+      scene.setZoomScale(1);
+    }
+    ui.setCameraMode(mode);
+    ui.setCameraActivity(mode);
+    return;
+  }
+  ui.setDisplayStatus({ ok: false, message: result.message || '请求失败' });
 }
 
 function clearActiveSelection(): void {
@@ -291,7 +319,7 @@ async function refreshState(): Promise<void> {
 void refreshState();
 pollingHandle = window.setInterval(() => {
   if (replay.live) void refreshState();
-}, 1000);
+}, 3000);
 
 document.querySelector('#liveToggle')?.addEventListener('click', () => {
   replay.setLive(!replay.live);

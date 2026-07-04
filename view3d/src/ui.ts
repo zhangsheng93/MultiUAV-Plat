@@ -1,7 +1,7 @@
 import type { CameraMode, CommandResult, DroneState, ObstacleState, Position, SelectionRef, TargetState, ViewerState } from './types';
 import { getCommandAvailability } from './uiState';
 import { formatClickPosition, formatStatusSummary, getTrailModeLabel } from './viewerRuntime';
-import { miniMapToWorld, resolveMiniMapBounds, worldToMiniMap } from './miniMap';
+import { getMiniMapObstacleShape, getMiniMapTargetShape, miniMapToWorld, resolveMiniMapBounds, worldToMiniMap, type MiniMapObjectShape } from './miniMap';
 import { getTargetVisualState, summarizeCoverage } from './taskVisuals';
 import type { RelativeMoveAction } from './movementControls';
 import { formatMovingPathText, formatVerticesText, parseMovingPathText, parseVerticesText, type EntityPatch } from './editorState';
@@ -9,6 +9,7 @@ import type { Locale } from './i18n.ts';
 import { t, translateDataValue } from './i18n.ts';
 import type { VisualScaleSettings } from './renderSettings.ts';
 import type { CoverageDisplayMode } from './scene.ts';
+import { getTargetBaseColor } from './targetVisuals.ts';
 
 type CommandHandler = (command: string) => void;
 type PerceivedRadiusHandler = (radius: number) => void;
@@ -40,6 +41,8 @@ const droneStatuses = ['idle', 'ready', 'taking_off', 'flying', 'moving', 'hover
 const targetTypes = ['fixed', 'moving', 'waypoint', 'circle', 'polygon'];
 const obstacleTypes = ['point', 'circle', 'ellipse', 'polygon'];
 const movementModes = ['velocity', 'path', 'stationary'];
+const MINI_MAP_DRONE_COLOR = '#22c55e';
+const MINI_MAP_SELECTED_DRONE_COLOR = '#ef4444';
 
 export class ViewerUI {
   readonly sessionName = document.querySelector<HTMLSpanElement>('#sessionName')!;
@@ -76,6 +79,7 @@ export class ViewerUI {
   private readonly languageToggle = document.querySelector<HTMLButtonElement>('#languageToggle')!;
   private readonly cameraTop = document.querySelector<HTMLButtonElement>('#cameraTop')!;
   private readonly cameraFollow = document.querySelector<HTMLButtonElement>('#cameraFollow')!;
+  private readonly cameraRoam = document.querySelector<HTMLButtonElement>('#cameraRoam')!;
   private readonly cameraFit = document.querySelector<HTMLButtonElement>('#cameraFit')!;
   private readonly cheatSheetToggle = document.querySelector<HTMLButtonElement>('#cheatSheetToggle')!;
   private readonly infoToggle = document.querySelector<HTMLButtonElement>('#infoToggle')!;
@@ -188,6 +192,7 @@ export class ViewerUI {
   bindCamera(handler: CameraHandler): void {
     this.cameraTop.addEventListener('click', () => handler('top'));
     this.cameraFollow.addEventListener('click', () => handler('follow'));
+    this.cameraRoam.addEventListener('click', () => handler('roam'));
     this.cameraFit.addEventListener('click', () => handler('fit'));
   }
 
@@ -431,6 +436,10 @@ export class ViewerUI {
     this.labelSizeValue.classList.toggle('disabled', !visible);
   }
 
+  setCameraMode(mode: CameraMode): void {
+    this.cameraRoam.classList.toggle('active', mode === 'roam');
+  }
+
   setVisualScaleSettings(settings: VisualScaleSettings): void {
     this.droneScale.value = String(Math.round(settings.drone * 100));
     this.targetScale.value = String(Math.round(settings.target * 100));
@@ -519,16 +528,17 @@ export class ViewerUI {
     ctx.strokeRect(bottomLeft.x, topRight.y, topRight.x - bottomLeft.x, bottomLeft.y - topRight.y);
 
     for (const obstacle of this.state.obstacles) {
-      this.drawMiniMapObject(ctx, obstacle.position, obstacle.radius || Math.max(obstacle.width || 0, obstacle.length || 0) / 2 || 6, bounds, size, '#64748b');
+      const selected = this.selection?.kind === 'obstacle' && this.selection.id === obstacle.id;
+      this.drawMiniMapObject(ctx, obstacle.position, getMiniMapObstacleShape(obstacle), bounds, size, '#64748b', selected);
     }
     for (const target of this.state.targets) {
-      const visualState = getTargetVisualState(target, this.state);
-      this.drawMiniMapObject(ctx, target.position, target.radius || 6, bounds, size, `#${visualState.color.toString(16).padStart(6, '0')}`);
+      const selected = this.selection?.kind === 'target' && this.selection.id === target.id;
+      this.drawMiniMapObject(ctx, target.position, getMiniMapTargetShape(target), bounds, size, this.formatHexColor(getTargetBaseColor(target.type)), selected);
     }
     for (const drone of this.state.drones) {
       const point = worldToMiniMap(drone.position, bounds, size);
       const selected = this.selection?.kind === 'drone' && this.selection.id === drone.id;
-      ctx.fillStyle = selected ? '#ef4444' : '#2563eb';
+      ctx.fillStyle = selected ? MINI_MAP_SELECTED_DRONE_COLOR : MINI_MAP_DRONE_COLOR;
       ctx.beginPath();
       ctx.arc(point.x, point.y, selected ? 4.5 : 3.5, 0, Math.PI * 2);
       ctx.fill();
@@ -904,6 +914,7 @@ export class ViewerUI {
     this.languageToggle.textContent = t(this.locale, 'language.toggle');
     this.cameraTop.textContent = t(this.locale, 'camera.top');
     this.cameraFollow.textContent = t(this.locale, 'camera.follow');
+    this.cameraRoam.textContent = t(this.locale, 'camera.roam');
     this.cameraFit.textContent = t(this.locale, 'camera.fit');
     this.cheatSheetToggle.textContent = t(this.locale, 'topbar.cheatSheet');
     this.infoToggle.textContent = t(this.locale, 'topbar.info');
@@ -913,6 +924,7 @@ export class ViewerUI {
     this.setText('#cheatPan', t(this.locale, 'cheat.pan'));
     this.setText('#cheatCameraTop', t(this.locale, 'cheat.cameraTop'));
     this.setText('#cheatCameraFollow', t(this.locale, 'cheat.cameraFollow'));
+    this.setText('#cheatCameraRoam', t(this.locale, 'cheat.cameraRoam'));
     this.setText('#cheatCameraFit', t(this.locale, 'cheat.cameraFit'));
     this.setText('#cheatZoom', t(this.locale, 'cheat.zoom'));
     this.setText('#cheatReset', t(this.locale, 'cheat.reset'));
@@ -1129,22 +1141,65 @@ export class ViewerUI {
     return { width: this.miniMapCanvas.width, height: this.miniMapCanvas.height, padding: 10 };
   }
 
+  private formatHexColor(color: number): string {
+    return `#${color.toString(16).padStart(6, '0')}`;
+  }
+
   private drawMiniMapObject(
+    ctx: CanvasRenderingContext2D,
+    position: Position,
+    shape: MiniMapObjectShape,
+    bounds: ReturnType<typeof resolveMiniMapBounds>,
+    size: ReturnType<ViewerUI['getMiniMapSize']>,
+    color: string,
+    selected = false
+  ): void {
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.78;
+    ctx.beginPath();
+
+    if (shape.kind === 'polygon') {
+      const points = shape.vertices.map((vertex) => worldToMiniMap(vertex, bounds, size));
+      if (points.length >= 3) {
+        ctx.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.closePath();
+      } else {
+        this.addMiniMapCirclePath(ctx, position, shape.fallbackRadius, bounds, size);
+      }
+    } else if (shape.kind === 'ellipse') {
+      const point = worldToMiniMap(position, bounds, size);
+      const radiusXPoint = worldToMiniMap({ x: position.x + shape.radiusX, y: position.y, z: position.z }, bounds, size);
+      const radiusYPoint = worldToMiniMap({ x: position.x, y: position.y + shape.radiusY, z: position.z }, bounds, size);
+      const pixelRadiusX = Math.max(2, Math.abs(radiusXPoint.x - point.x));
+      const pixelRadiusY = Math.max(2, Math.abs(radiusYPoint.y - point.y));
+      ctx.ellipse(point.x, point.y, pixelRadiusX, pixelRadiusY, 0, 0, Math.PI * 2);
+    } else {
+      this.addMiniMapCirclePath(ctx, position, shape.radius, bounds, size);
+    }
+
+    ctx.fill();
+    if (selected) {
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  private addMiniMapCirclePath(
     ctx: CanvasRenderingContext2D,
     position: Position,
     radius: number,
     bounds: ReturnType<typeof resolveMiniMapBounds>,
-    size: ReturnType<ViewerUI['getMiniMapSize']>,
-    color: string
+    size: ReturnType<ViewerUI['getMiniMapSize']>
   ): void {
     const point = worldToMiniMap(position, bounds, size);
     const radiusPoint = worldToMiniMap({ x: position.x + radius, y: position.y, z: position.z }, bounds, size);
     const pixelRadius = Math.max(2, Math.abs(radiusPoint.x - point.x));
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.78;
-    ctx.beginPath();
     ctx.arc(point.x, point.y, pixelRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
   }
 }

@@ -8,6 +8,7 @@ type CoreMessageKey =
   | 'camera.free'
   | 'camera.top'
   | 'camera.follow'
+  | 'camera.roam'
   | 'camera.fit'
   | 'topbar.cheatSheet'
   | 'topbar.info'
@@ -16,6 +17,7 @@ type CoreMessageKey =
   | 'cheat.pan'
   | 'cheat.cameraTop'
   | 'cheat.cameraFollow'
+  | 'cheat.cameraRoam'
   | 'cheat.cameraFit'
   | 'cheat.zoom'
   | 'cheat.reset'
@@ -28,7 +30,6 @@ type CoreMessageKey =
   | 'status.noSession'
   | 'status.warningNoSession'
   | 'session.summary'
-  | 'summary.counts'
   | 'summary.task'
   | 'summary.finished'
   | 'click.position'
@@ -181,6 +182,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'camera.free': '自由视角',
     'camera.top': '俯视',
     'camera.follow': '跟随',
+    'camera.roam': '漫游',
     'camera.fit': '全局',
     'topbar.cheatSheet': '快捷键',
     'topbar.info': '信息',
@@ -189,6 +191,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'cheat.pan': '平移视角',
     'cheat.cameraTop': '俯视',
     'cheat.cameraFollow': '跟随',
+    'cheat.cameraRoam': '漫游路径',
     'cheat.cameraFit': '全局',
     'cheat.zoom': '放大 / 缩小',
     'cheat.reset': '重置视角',
@@ -201,7 +204,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'status.noSession': '无会话',
     'status.warningNoSession': '无 current session',
     'session.summary': '{drones} 架无人机 · {targets} 个目标 · {obstacles} 个障碍物',
-    'summary.counts': '无人机/目标/障碍物: {drones}/{targets}/{obstacles}',
     'summary.task': '任务: {progress}%',
     'summary.finished': '任务已完成',
     'click.position': '点击: ({x}, {y}, {z})',
@@ -398,6 +400,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'camera.free': 'Free',
     'camera.top': 'Top',
     'camera.follow': 'Follow',
+    'camera.roam': 'Roam',
     'camera.fit': 'Fit',
     'topbar.cheatSheet': 'CheatSheet',
     'topbar.info': 'Info',
@@ -406,6 +409,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'cheat.pan': 'Pan view',
     'cheat.cameraTop': 'Top view',
     'cheat.cameraFollow': 'Follow view',
+    'cheat.cameraRoam': 'Roam path',
     'cheat.cameraFit': 'Fit all',
     'cheat.zoom': 'Zoom in / out',
     'cheat.reset': 'Reset view',
@@ -418,7 +422,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'status.noSession': 'No Session',
     'status.warningNoSession': 'No current session',
     'session.summary': '{drones} drones · {targets} targets · {obstacles} obstacles',
-    'summary.counts': 'Drones/Targets/Obstacles: {drones}/{targets}/{obstacles}',
     'summary.task': 'Task: {progress}%',
     'summary.finished': 'Task Finished',
     'click.position': 'Click: ({x}, {y}, {z})',
@@ -672,6 +675,7 @@ const controlledValues: Record<Locale, Record<string, string>> = {
     '正在更新感知半径...': 'Updating perception radius...',
     '无 current session': 'No current session',
     '请先选择一架无人机。': 'Select a drone first.',
+    '该无人机没有可漫游路径。': 'The selected drone has no path to roam.',
     '感知半径必须大于 0。': 'Perception radius must be greater than 0.',
     '无人机已更新': 'Drone updated',
     '无人机更新请求超时': 'Drone update request timed out',

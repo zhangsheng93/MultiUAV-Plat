@@ -51,30 +51,30 @@ test('scene labels are hidden by default to keep the 3D view uncluttered', () =>
   assert.equal(DISPLAY_ONLY_MODE, true);
 });
 
-test('status summary mirrors 2D counts and task progress', () => {
+test('status summary reports task progress without duplicate counts', () => {
   assert.equal(
     formatStatusSummary(makeState()),
-    '无人机/目标/障碍物: 2/1/2 · 任务: 67%'
+    '任务: 67%'
   );
   assert.equal(
     formatStatusSummary(makeState(), 'en-US'),
-    'Drones/Targets/Obstacles: 2/1/2 · Task: 67%'
+    'Task: 67%'
   );
 });
 
-test('status summary reports finished task and omits others progress', () => {
+test('status summary reports finished task and omits counts and others progress', () => {
   assert.equal(
     formatStatusSummary(makeState({
       task_progress: { task_type: 'target_tracking', progress_percentage: 100, is_completed: true }
     })),
-    '无人机/目标/障碍物: 2/1/2 · 任务已完成'
+    '任务已完成'
   );
 
   assert.equal(
     formatStatusSummary(makeState({
       task_progress: { task_type: 'others', progress_percentage: 0, is_completed: false }
     })),
-    '无人机/目标/障碍物: 2/1/2'
+    ''
   );
 });
 
@@ -124,7 +124,7 @@ test('keyboard shortcuts cover first phase 2D parity actions', () => {
   assert.equal(getShortcutAction('1'), 'camera_fit');
   assert.equal(getShortcutAction('2'), 'camera_top');
   assert.equal(getShortcutAction('3'), 'camera_follow');
-  assert.equal(getShortcutAction('4'), null);
+  assert.equal(getShortcutAction('4'), 'camera_roam');
   assert.equal(getShortcutAction('x'), null);
 });
 
