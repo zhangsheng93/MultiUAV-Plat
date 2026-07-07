@@ -1,5 +1,11 @@
 # MultiUAV-Plat 系统教程
 
+🌐 语言： [English](tutorial_en.md) | **中文**
+
+【撰写人】：Yijia Fu, Jiangwei Zhao, Tianyu Hu
+
+【审校人】：Sheng Zhang
+
 【版本号】：v0.4
 
 【时  间】：2026-7-2

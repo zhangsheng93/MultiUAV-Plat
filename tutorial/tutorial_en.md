@@ -1,5 +1,11 @@
 # MultiUAV-Plat Tutorial
 
+🌐 Language: **English** | [中文](tutorial_zh.md)
+
+**Authors:** Yijia Fu, Jiangwei Zhao, Tianyu Hu
+
+**Reviewer:** Sheng Zhang
+
 **Version:** v0.4
 
 **Date:** 2026-7-2

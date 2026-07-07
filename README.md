@@ -58,7 +58,7 @@ view3d/       Web-based 3D mission visualization viewer
 tutorial/     Step-by-step user tutorial with screenshots
 ```
 
-Each component includes its own documentation for deeper usage details. For a screenshot-guided walkthrough of starting the server/controller, editing sessions, managing tasks, running AI-agent checks, and using the 3D viewer, see the [English tutorial](tutorial/tutorial_en.md) or [Chinese tutorial](tutorial/Tutorial_zh.md).
+Each component includes its own documentation for deeper usage details. For a screenshot-guided walkthrough of starting the server/controller, editing sessions, managing tasks, running AI-agent checks, and using the 3D viewer, see the [English tutorial](tutorial/tutorial_en.md) or [Chinese tutorial](tutorial/tutorial_zh.md).
 
 ## ⬇️ Releases
 
