@@ -4,7 +4,7 @@
 
 🌐 语言： [English](README.md) | **中文**
 
-[📄 论文](https://arxiv.org/abs/2606.31073) | [🏠 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
+[📄 论文](https://arxiv.org/abs/2606.31073) | [🏠 项目主页](https://zhangsheng93.github.io/multiuavweb/) | [💻 代码](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 测评基准](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📚 教程](tutorial/Tutorial_zh.md) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 引用](#-引用)
 
 MultiUAV-Plat 是一个轻量级开源仿真平台与测评基准，用于研究 LLM agent 如何在受限 API 和局部观测条件下，对多无人机任务进行规划、执行、观察与验证。
 
@@ -55,9 +55,10 @@ controller/   GUI/session controller
 agent4drone/  基于 LLM 的 UAV agent 框架与 agent API service
 benchmark/    测评基准会话和场景资源
 view3d/       基于 Web 的 3D 任务可视化查看器
+tutorial/     带截图的分步使用教程
 ```
 
-每个组件都包含更详细的独立说明文档。
+每个组件都包含更详细的独立说明文档。如果需要按截图逐步了解 server/controller 启动、场景编辑、任务管理、AI 智能体自动检查和 3D 查看器使用流程，请查看[中文教程](tutorial/Tutorial_zh.md)或[英文教程](tutorial/tutorial_en.md)。
 
 ## ⬇️ Releases
 

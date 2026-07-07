@@ -4,7 +4,7 @@
 
 🌐 Language: **English** | [中文](README_CN.md)
 
-[📄 Paper](https://arxiv.org/abs/2606.31073) | [🏠 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
+[📄 Paper](https://arxiv.org/abs/2606.31073) | [🏠 Project Website](https://zhangsheng93.github.io/multiuavweb/) | [💻 Code](https://github.com/zhangsheng93/MultiUAV-Plat) | [📦 Benchmark](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📚 Tutorial](tutorial/tutorial_en.md) | [⬇️ Releases](https://github.com/zhangsheng93/MultiUAV-Plat/releases) | [📝 Citation](#-citation)
 
 MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark for studying LLM agents that plan, act, observe, and verify multi-UAV missions through restricted APIs and partial local perception.
 
@@ -55,9 +55,10 @@ controller/   GUI/session controller
 agent4drone/  LLM-based UAV agent framework and agent API service
 benchmark/    Benchmark sessions and scenario assets
 view3d/       Web-based 3D mission visualization viewer
+tutorial/     Step-by-step user tutorial with screenshots
 ```
 
-Each component includes its own documentation for deeper usage details.
+Each component includes its own documentation for deeper usage details. For a screenshot-guided walkthrough of starting the server/controller, editing sessions, managing tasks, running AI-agent checks, and using the 3D viewer, see the [English tutorial](tutorial/tutorial_en.md) or [Chinese tutorial](tutorial/Tutorial_zh.md).
 
 ## ⬇️ Releases
 
