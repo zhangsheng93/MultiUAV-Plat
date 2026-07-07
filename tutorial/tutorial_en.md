@@ -1,5 +1,7 @@
 # MultiUAV-Plat Tutorial
 
+## Preface
+
 🌐 Language: **English** | [中文](tutorial_zh.md)
 
 **Authors:** Yijia Fu, Jiangwei Zhao, Tianyu Hu
@@ -10,11 +12,64 @@
 
 **Date:** 2026-7-2
 
-# Starting the System
+### Introduction
+
+MultiUAV-Plat is a lightweight, open-source simulation platform and benchmark for studying LLM agents that plan, act, observe, and verify multi-UAV missions through restricted APIs and partial local perception.
+
+Large language models provide a promising interface for high-level robotic task planning, but evaluating them in multi-UAV collaboration requires a mission-level environment with restricted APIs, role-based information access, partial observations, hidden validation logic, and closed-loop execution. MultiUAV-Plat addresses this need with a RESTful multi-UAV simulation platform, a reproducible benchmark, and the Agent4Drone workflow for planning, execution, verification, and replanning.
+
+### Key Features
+
+- RESTful APIs for mission-level UAV control, sensing, session management, and validation.
+- Role-based access control and agent-facing observations that prevent privileged simulator access.
+- Hidden task validators for reproducible closed-loop evaluation.
+- 2D and 3D visualization for mission overview, scenario editing, trajectory inspection, altitude, coverage, targets, obstacles, minimap context, follow/roam cameras, and screenshot export.
+- GUI controller for session creation, editing, import/export, and monitoring.
+- MultiUAV-Agent Workflow with Agent4Drone as the reference implementation.
+- Benchmark scenarios covering Target Assignment, Area Search, and Area Assignment and Patrol.
 
 The system consists of a server and a controller. The server is the main platform endpoint; the controller is the manual control endpoint and can serve as a development reference. Development should be built on top of the server.
 
-## 1.1 UAV Simulation System
+## Table of Contents
+
+- [1. Starting the System](#1-starting-the-system)
+  - [1.1 UAV Simulation System](#11-uav-simulation-system)
+  - [1.2 UAV Control System](#12-uav-control-system)
+- [2. Editing the Overall Session](#2-editing-the-overall-session)
+  - [2.1 Creating a Session](#21-creating-a-session)
+  - [2.2 Opening a Session](#22-opening-a-session)
+  - [2.3 Exporting a Session](#23-exporting-a-session)
+  - [2.4 Deleting a Session](#24-deleting-a-session)
+- [3. Modifying Session Content](#3-modifying-session-content)
+  - [3.1 Drones](#31-drones)
+  - [3.2 Targets](#32-targets)
+  - [3.3 Obstacles](#33-obstacles)
+  - [3.4 Weather Environment](#34-weather-environment)
+  - [3.5 Visual Editing](#35-visual-editing)
+- [4. UAV Control](#4-uav-control)
+  - [4.1 Simulation System](#41-simulation-system)
+  - [4.2 Control System](#42-control-system)
+- [5. Task Management](#5-task-management)
+  - [5.1 Adding Tasks](#51-adding-tasks)
+  - [5.2 Marking Task Completion](#52-marking-task-completion)
+  - [5.3 Task Templates](#53-task-templates)
+- [6. AI Agent Auto-Check](#6-ai-agent-auto-check)
+  - [6.1 Starting the AI Agent Service (agent4drone)](#61-starting-the-ai-agent-service-agent4drone)
+  - [6.2 Entering the Auto-Check UI](#62-entering-the-auto-check-ui)
+  - [6.3 Importing Sessions](#63-importing-sessions)
+  - [6.4 Running Checks](#64-running-checks)
+- [7. 3D Visualization Viewer](#7-3d-visualization-viewer)
+  - [7.1 Requirements and Interface Overview](#71-requirements-and-interface-overview)
+  - [7.2 Starting the 3D Viewer](#72-starting-the-3d-viewer)
+  - [7.3 Interface Layout](#73-interface-layout)
+  - [7.4 Basic Operations](#74-basic-operations)
+  - [7.5 Keyboard Shortcuts](#75-keyboard-shortcuts)
+  - [7.6 Backend-Linked Live Visualization](#76-backend-linked-live-visualization)
+  - [7.7 Roam Mode](#77-roam-mode)
+
+## 1. Starting the System
+
+### 1.1 UAV Simulation System
 
 Launch `MultiUAV-Plat.Server.exe`. A command prompt window appears.
 
@@ -52,7 +107,7 @@ After choosing **Yes**, the graphical interface appears as shown below.
 
 UAV simulation system started successfully!
 
-## 1.2 UAV Control System
+### 1.2 UAV Control System
 
 Launch `MultiUAV-Plat.Controller.exe`. A command prompt window and a session management window appear.
 
@@ -70,9 +125,9 @@ Launch `MultiUAV-Plat.Controller.exe`. A command prompt window and a session man
 
 UAV control system started successfully!
 
-# 2. Editing the Overall Session
+## 2. Editing the Overall Session
 
-## 2.1 Creating a Session
+### 2.1 Creating a Session
 
 In the session management window, click the "New" button to open the new session creation screen.
 
@@ -144,7 +199,7 @@ The example below uses "Start empty session" to create a blank session, shown as
 
 Session created successfully!
 
-## 2.2 Opening a Session
+### 2.2 Opening a Session
 
 Select the newly created "New Session 1" and click "Launch" to open the session.
 
@@ -190,7 +245,7 @@ In the simulation system GUI opened earlier, the view updates to the selected bl
 
 Session opened successfully!
 
-## 2.3 Exporting a Session
+### 2.3 Exporting a Session
 
 Select "New Session 1" and click "Export". The session is saved locally as a JSON file.
 
@@ -200,7 +255,7 @@ Select "New Session 1" and click "Export". The session is saved locally as a JSO
 
 <p align="center"><em>Figure 2.3-1 Clicking the Export button to export the session</em></p>
 
-## 2.4 Deleting a Session
+### 2.4 Deleting a Session
 
 Select "New Session 1" and click "Delete".
 
@@ -218,7 +273,7 @@ A confirmation dialog appears. Click "Yes" to delete the session.
 
 <p align="center"><em>Figure 2.4-2 Session deletion confirmation dialog</em></p>
 
-# 3. Modifying Session Content
+## 3. Modifying Session Content
 
 Open a session. The console has four tabs: Drones, Targets, Obstacles, and Environments. These are the editable elements of a session.
 
@@ -228,9 +283,9 @@ Open a session. The console has four tabs: Drones, Targets, Obstacles, and Envir
 
 <p align="center"><em>Figure 3-1 The four console tabs</em></p>
 
-## 3.1 Drones
+### 3.1 Drones
 
-### 3.1.1 Add
+#### 3.1.1 Add
 
 Open the "Drones" tab and click "Add".
 
@@ -281,7 +336,7 @@ The add-drone dialog appears.
 
 Click "Add Drone" to add the drone.
 
-### 3.1.2 Edit
+#### 3.1.2 Edit
 
 Select a drone and click "Edit".
 
@@ -299,7 +354,7 @@ The edit-drone dialog appears with the same fields as add-drone. Click "Save Cha
 
 <p align="center"><em>Figure 3.1.2-2 Edit-drone dialog</em></p>
 
-### 3.1.3 Delete
+#### 3.1.3 Delete
 
 Select a drone and click "Delete".
 
@@ -317,7 +372,7 @@ The delete confirmation appears. Click "Delete" to remove the drone.
 
 <p align="center"><em>Figure 3.1.3-2 Delete-drone dialog</em></p>
 
-## 3.2 Targets
+### 3.2 Targets
 
 Targets come in five types: Waypoint, Moving, Fixed, Circle, and Polygon. An example simulation GUI is shown below.
 
@@ -329,7 +384,7 @@ Targets come in five types: Waypoint, Moving, Fixed, Circle, and Polygon. An exa
 
 Green = waypoint, red = moving, yellow = fixed, dark blue = circle, light blue = polygon. Edit and delete work like drones and are omitted here. Below are the add flows for each target type.
 
-### 3.2.1 Waypoint Targets (Charging Stations)
+#### 3.2.1 Waypoint Targets (Charging Stations)
 
 Open the "Targets" tab and click "+Waypoint".
 
@@ -359,7 +414,7 @@ The add-waypoint dialog appears.
 
 Click "Add Target" to add the waypoint.
 
-### 3.2.2 Moving Targets
+#### 3.2.2 Moving Targets
 
 Click "+Moving".
 
@@ -389,7 +444,7 @@ The add-moving-target dialog appears.
 | Path-based (Follow waypoints) | Path-based waypoint following |
 | Stationary (No movement) | Stationary (no movement) |
 
-### 3.2.3 Fixed Targets
+#### 3.2.3 Fixed Targets
 
 Click "+Fixed".
 
@@ -407,7 +462,7 @@ The add-fixed-target dialog appears.
 
 <p align="center"><em>Figure 3.2.3-2 Add-fixed-target dialog</em></p>
 
-### 3.2.4 Circle Targets
+#### 3.2.4 Circle Targets
 
 Click "+Circle".
 
@@ -425,7 +480,7 @@ The add-circle-target dialog appears.
 
 <p align="center"><em>Figure 3.2.4-2 Add-circle-target dialog</em></p>
 
-### 3.2.5 Polygon Targets
+#### 3.2.5 Polygon Targets
 
 Click "+Polygon".
 
@@ -445,7 +500,7 @@ The add-polygon-target dialog appears.
 
 **Vertices:** Vertex X/Y coordinates; at least 3 rows (3 vertices) are required.
 
-## 3.3 Obstacles
+### 3.3 Obstacles
 
 Obstacles come in four types: Point, Circle (cylinder), Ellipse, and Polygon. An example simulation GUI is shown below.
 
@@ -457,7 +512,7 @@ Obstacles come in four types: Point, Circle (cylinder), Ellipse, and Polygon. An
 
 Black = point, brown = cylinder, blue-gray = elliptic cylinder, gray = polyhedron. Edit and delete work like drones. Below are the add flows for each obstacle type.
 
-### 3.3.1 Point Obstacles
+#### 3.3.1 Point Obstacles
 
 Open the "Obstacles" tab and click "+Point".
 
@@ -485,7 +540,7 @@ The add-point-obstacle dialog appears.
 
 Click "Add Obstacle" to add the point obstacle.
 
-### 3.3.2 Cylinder Obstacles
+#### 3.3.2 Cylinder Obstacles
 
 Click "+Circle".
 
@@ -503,7 +558,7 @@ The add-cylinder-obstacle dialog appears.
 
 <p align="center"><em>Figure 3.3.2-2 Add-cylinder-obstacle dialog</em></p>
 
-### 3.3.3 Elliptic Cylinder Obstacles
+#### 3.3.3 Elliptic Cylinder Obstacles
 
 Click "+Ellipse".
 
@@ -525,7 +580,7 @@ The add-elliptic-cylinder dialog appears.
 
 **Length:** Length
 
-### 3.3.4 Polyhedron Obstacles
+#### 3.3.4 Polyhedron Obstacles
 
 Click "+Polygon".
 
@@ -545,7 +600,7 @@ The add-polyhedron dialog appears.
 
 **Vertices:** Vertex X/Y coordinates; at least 3 rows for the base polygon.
 
-## 3.4 Weather Environment
+### 3.4 Weather Environment
 
 Edit and delete work like drones and are omitted. Below is the add flow for environments.
 
@@ -611,7 +666,7 @@ Click "Create" to add the environment. Back in the console, select it and click 
 
 <p align="center"><em>Figure 3.4-3 Setting the current weather environment</em></p>
 
-## 3.5 Visual Editing
+### 3.5 Visual Editing
 
 Return to the console and click "Visually Edit Session".
 
@@ -642,11 +697,11 @@ The visual editor provides "Add Drone", "Add Target", and "Add Obstacle". After 
 
 Use "Save" to save, "Save As" to save a copy, and "Close" to exit.
 
-# 4. UAV Control
+## 4. UAV Control
 
 Drones can be controlled in two ways: through the simulation system or through the control system.
 
-## 4.1 Simulation System
+### 4.1 Simulation System
 
 In the simulation GUI, click to select a drone.
 
@@ -666,7 +721,7 @@ Click "Take Off" to launch the drone.
 
 Click anywhere on the map to move the drone there. Use "Land" to land and "Cancel Selection" to deselect.
 
-## 4.2 Control System
+### 4.2 Control System
 
 On the console Drones tab, four buttons appear: "Take Off", "Land", "Move To", and "Control".
 
@@ -719,11 +774,11 @@ For gamepad-style control, select a drone and click "Control".
 
 **Manual Position Control:** Set X/Y/Z coordinates and click **Move to Position** to fly the drone to that location.
 
-# 5. Task Management
+## 5. Task Management
 
 Edit and delete work like drones and are omitted.
 
-## 5.1 Adding Tasks
+### 5.1 Adding Tasks
 
 Return to the console and open the "Tasks" tab.
 
@@ -813,7 +868,7 @@ Click "Add" to open the task creation dialog.
 | Remove | Remove |
 | ↑/↓ | Move up / Move down |
 
-## 5.2 Marking Task Completion
+### 5.2 Marking Task Completion
 
 Select an incomplete task and click "Done" to mark it complete.
 
@@ -831,7 +886,7 @@ Select a completed task and click "Undone" to mark it incomplete.
 
 <p align="center"><em>Figure 5.2-2 Marking a task as incomplete</em></p>
 
-## 5.3 Task Templates
+### 5.3 Task Templates
 
 In addition to creating tasks manually, the system provides task templates. A task template is a reusable task definition with placeholders (e.g., `{drone_1_name}`, `{random_altitude}`) instead of concrete entity names or values. Using templates lets you quickly and batch-generate structurally consistent tasks with varying parameters.
 
@@ -840,7 +895,7 @@ Templates come in two categories:
 - **Built-in templates:** Common templates provided by the system (e.g., `basic_takeoff_land`, `patrol_mission`, `search_task`, `grid_search`, etc.). Cannot be deleted but can be duplicated into editable custom versions.
 - **Custom templates:** Created by the user or duplicated from built-ins. Stored locally in `./templates/task_templates.json`.
 
-### 5.3.1 Editing Task Templates
+#### 5.3.1 Editing Task Templates
 
 On the "Tasks" tab, click the "From Template" button to open the task template browser.
 
@@ -905,7 +960,7 @@ Common placeholders:
 
 > Note: Numbered placeholders should use `_id` and `_name` in pairs so the UI can show entity dropdowns; the same numbered placeholder reuses the same entity when it appears multiple times in a template.
 
-### 5.3.2 Generating Tasks from Templates
+#### 5.3.2 Generating Tasks from Templates
 
 In the task template browser, select a template and double-click or click "Use Template". This opens the **Customize Template** dialog. Generate tasks as follows:
 
@@ -930,11 +985,11 @@ In the task template browser, select a template and double-click or click "Use T
 
 When generating, the system resolves placeholders before creating tasks, so each task can have different entities and randomized parameters. This is ideal for quickly populating many test tasks.
 
-# 6. AI Agent Auto-Check
+## 6. AI Agent Auto-Check
 
 The auto-check feature sends session tasks to the AI agent for execution, waits for completion, then evaluates task outcomes. Before using auto-check, you must first start the `agent4drone` intelligent agent service; otherwise the auto-check UI cannot send commands to the agent.
 
-## 6.1 Starting the AI Agent Service (agent4drone)
+### 6.1 Starting the AI Agent Service (agent4drone)
 
 The AI agent lives in the `agent4drone/` directory. It is a large-language-model (LLM) based drone control program with two usage modes:
 
@@ -945,7 +1000,7 @@ The AI agent lives in the `agent4drone/` directory. It is a large-language-model
 
 The sections below cover environment setup, starting the service, and the **full workflow for sending commands in the visual UI**.
 
-### 6.1.1 Environment Setup
+#### 6.1.1 Environment Setup
 
 **Step 1 — Install dependencies (run once):**
 
@@ -966,7 +1021,7 @@ UAV_API_KEY=
 
 **Step 3 — Ensure the UAV simulation platform is running.** Whichever agent mode you use, start `MultiUAV-Plat.Server.exe` first and **Launch** the target session in the Controller so the session is active.
 
-### 6.1.2 Starting the REST Service (for Auto-Check)
+#### 6.1.2 Starting the REST Service (for Auto-Check)
 
 The auto-check UI connects to `http://localhost:18000` by default, so start the service mode:
 
@@ -982,7 +1037,7 @@ Once running:
 
 > If you only need manual conversational testing, skip this subsection and use the visual UI in Section 6.1.3.
 
-### 6.1.3 Sending Commands in the Visual UI
+#### 6.1.3 Sending Commands in the Visual UI
 
 The visual UI (**UAV Control Interface**) is ideal for manual debugging: describe tasks in natural language and observe how the agent understands, plans, and controls the drones.
 
@@ -1088,7 +1143,7 @@ Confirm [TASK DONE] and Command completed → send next command or close the UI
 
 After starting the agent service or opening the visual UI, proceed to Section 6.2 for auto-check, or continue testing task commands in the UI.
 
-## 6.2 Entering the Auto-Check UI
+### 6.2 Entering the Auto-Check UI
 
 In the session management window, click "CheckUI" to open the auto-check UI.
 
@@ -1131,7 +1186,7 @@ The auto-check UI is shown below.
 | Import | Import |
 | Agent Timeout | Agent timeout |
 
-## 6.3 Importing Sessions
+### 6.3 Importing Sessions
 
 Select session(s) under "Sessions"; tasks appear under "Tasks". Click "Add Tasks in Sessions" to queue them.
 
@@ -1141,7 +1196,7 @@ Select session(s) under "Sessions"; tasks appear under "Tasks". Click "Add Tasks
 
 <p align="center"><em>Figure 6.3-1 Importing sessions</em></p>
 
-## 6.4 Running Checks
+### 6.4 Running Checks
 
 Configure options as needed, then click **Start** to run checks; **Pause** to pause; **Clear** to reset the list; select a task and click **Uncheck** to mark it unchecked; **Export / Import** to save or load check results.
 
@@ -1151,7 +1206,7 @@ Configure options as needed, then click **Start** to run checks; **Pause** to pa
 
 <p align="center"><em>Figure 6.4-1 Running the auto-check</em></p>
 
-### 6.4.1 Batch Check Running State
+#### 6.4.1 Batch Check Running State
 
 After clicking **Start**, the UI enters batch-check running state. The **Control & Progress** area on the right updates queue progress, task results, and log output in real time so you can watch the agent execute tasks one by one.
 
@@ -1260,11 +1315,11 @@ When all done, Export JSON report
 
 > **Tip:** Batch checks depend on the REST service started in Section 6.1.2 (`agent_api_service.py`). If the Log shows agent connection failures, confirm `http://localhost:18000/health` responds normally and that the UAV Server and target session are both Launch-active.
 
-# 7. 3D Visualization Viewer
+## 7. 3D Visualization Viewer
 
 The 3D viewer is a standalone Three.js-based web application in the `view3d/` directory. It reads the platform's current session data and renders it as an interactive 3D scene, visualizing drones, targets, obstacles, altitude lines, path histories, coverage areas, and more.
 
-## 7.3.1 Requirements and Interface Overview
+### 7.1 Requirements and Interface Overview
 
 **Requirements:**
 
@@ -1281,7 +1336,7 @@ After startup, the browser opens **MultiUAV-Plat 3D Viewer**. By default it show
 
 The toolbar offers Fit / Top / Follow / Roam view switches (**Fit** selected by default); the center shows a gridded 3D scene with quadcopter models, blue target areas, and colored obstacle columns; the minimap is bottom-left; **Server Connected** at the bottom indicates a successful connection to the simulation platform.
 
-## 7.3.2 Starting the 3D Viewer
+### 7.2 Starting the 3D Viewer
 
 Before starting, enter the `view3d/` directory and install dependencies:
 
@@ -1304,7 +1359,7 @@ $env:VITE_VIEWER_DATA_SOURCE="backend"; npx vite --host 127.0.0.1 --port 5173
 
 Then open **http://127.0.0.1:5173/** in your browser to see the 3D interface shown in Figure 7.1-1.
 
-## 7.3.3 Interface Layout
+### 7.3 Interface Layout
 
 The 3D viewer is organized into **top toolbar**, **central 3D scene**, and **bottom status bar**.
 
@@ -1316,7 +1371,7 @@ The 3D viewer is organized into **top toolbar**, **central 3D scene**, and **bot
 | **Fit** | Panorama view—auto-fit the camera to the whole scene (see Figure 7.1-1) |
 | **Top** | Top-down view of the task area |
 | **Follow** | Follow mode—camera tracks the selected drone |
-| **Roam** | Roam mode—first-person flight along the selected drone's path history (see Section 7.3.7) |
+| **Roam** | Roam mode—first-person flight along the selected drone's path history (see Section 7.7) |
 | **Continuous Surface** | Ground rendering mode dropdown |
 | **PNG / Capture** | Export the current view as an image |
 | **CheatSheet / Info** | Shortcut reference and help |
@@ -1354,7 +1409,7 @@ For reference, here is the 2D simulation interface side by side:
 
 <p align="center"><em>Figure 7-2 2D simulation system interface (for comparison)</em></p>
 
-## 7.3.4 Basic Operations
+### 7.4 Basic Operations
 
 | Operation | Description |
 | --- | --- |
@@ -1370,7 +1425,7 @@ For reference, here is the 2D simulation interface side by side:
 | **Zoom slider** (bottom-right) | Vertical slider for quick zoom |
 | **PNG / Capture** | Export the current canvas image |
 
-## 7.3.5 Keyboard Shortcuts
+### 7.5 Keyboard Shortcuts
 
 | Shortcut | Action |
 | --- | --- |
@@ -1389,7 +1444,7 @@ For reference, here is the 2D simulation interface side by side:
 | `M` | Show / hide minimap |
 | `I` | Show / hide info panel |
 
-## 7.3.6 Backend-Linked Live Visualization
+### 7.6 Backend-Linked Live Visualization
 
 When the 3D viewer runs alongside the UAV API server, it displays live session state:
 
@@ -1405,7 +1460,7 @@ If the UAV API server is not running, the viewer automatically falls back to **D
 
 <p align="center"><em>Figure 7.6-1 3D scene in demo mode (no backend connected)</em></p>
 
-## 7.3.7 Roam Mode
+### 7.7 Roam Mode
 
 Roam mode is a **first-person path flight** view: the camera advances automatically along the selected drone's historical flight path, simulating the drone's perspective on the mission. Figure 7.7-1 shows roam mode in the `Area Search Easy 1` session.
 
@@ -1417,7 +1472,7 @@ Roam mode is a **first-person path flight** view: the camera advances automatica
 
 The camera sits close to the **Drone 3** quadcopter model; a semi-transparent blue bounding box marks the tracked drone; green lines on the ground show the remaining path; another drone ahead is marked with a yellow highlight ring; the status bar shows `Switched to Roam view` and `Task: 23%`.
 
-### Entering Roam Mode
+#### Entering Roam Mode
 
 1. **Select a drone in the 3D scene** (left click, or Tab to cycle selection).
 2. **Click the Roam button** in the top toolbar, or press **`4`**.
@@ -1425,7 +1480,7 @@ The camera sits close to the **Drone 3** quadcopter model; a semi-transparent bl
 
 > Note: If the selected drone has insufficient path history (fewer than 2 waypoints), roam mode cannot start. Fly the drone in the 2D simulator or via the agent first to record a path.
 
-### Visual Elements During Roam
+#### Visual Elements During Roam
 
 | Element | Description |
 | --- | --- |
@@ -1434,7 +1489,7 @@ The camera sits close to the **Drone 3** quadcopter model; a semi-transparent bl
 | **Yellow highlight ring** | Marks other drones or objects of interest in the scene |
 | **Roam button highlighted** | **Roam** is selected in the toolbar; status bar shows `Switched to Roam view` |
 
-### Controls During Roam
+#### Controls During Roam
 
 | Action | Description |
 | --- | --- |
@@ -1447,10 +1502,10 @@ The camera sits close to the **Drone 3** quadcopter model; a semi-transparent bl
 
 Roam speed is based on the drone's maximum speed property and can be adjusted between **25% and 400%**. The status bar shows the current roam speed percentage, e.g. `Roam speed: 100%`.
 
-### Smooth Path Turns
+#### Smooth Path Turns
 
 At path corners, roam mode smooths the camera transition: as the camera approaches a turn, its forward direction blends between the previous and next path segments. Turn distance scales with speed (faster speed starts turning earlier) for a natural flight perspective.
 
-### Reaching the End
+#### Reaching the End
 
 When the camera reaches the path end, roam stops and holds the final position. Press `Esc` or `4` to exit roam and return to free view (Fit / Top / Follow).
