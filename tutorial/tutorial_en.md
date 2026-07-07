@@ -1,4 +1,4 @@
-# UAV Simulation and Control System Tutorial
+# MultiUAV-Plat Tutorial
 
 **Version:** v0.4
 
