@@ -1,7 +1,7 @@
 import unittest
 
 from controllers.session_controller import SessionController
-from main import create_argument_parser
+from main import create_argument_parser, should_auto_start_ui
 from models.session import (
     DEFAULT_REQUEST_HISTORY_LIMIT,
     Session,
@@ -218,6 +218,14 @@ class RequestHistoryRetentionTests(unittest.TestCase):
                 ["--request-history-limit", "2500"]
             ).request_history_limit,
             2500,
+        )
+
+    def test_cli_drone_control_auto_starts_ui(self):
+        parser = create_argument_parser()
+
+        self.assertFalse(should_auto_start_ui(parser.parse_args([])))
+        self.assertTrue(
+            should_auto_start_ui(parser.parse_args(["--ui-drone-control"]))
         )
 
     def test_cli_rejects_non_positive_limit(self):

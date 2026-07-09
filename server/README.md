@@ -54,20 +54,22 @@ A comprehensive drone control and simulation system featuring a RESTful API buil
 ## Quick Start
 
 ### Prerequisites
-- Python 3.8 or higher
-- pip (Python package manager)
+- Conda, using Python 3.11 for the recommended server environment
+- pip inside the active conda environment
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd drone
+   cd MultiUAV-Plat/server
    ```
 
 2. **Install dependencies**
    ```bash
-   pip install -r requirements.txt
+   conda create -n multiuav-server python=3.11
+   conda activate multiuav-server
+   python -m pip install -r requirements.txt
    ```
 
 3. **Run the system**
@@ -81,8 +83,8 @@ A comprehensive drone control and simulation system featuring a RESTful API buil
    # Or run only the UI
    python main.py --ui
 
-   # Enable UI drone controls, including Take Off/Land and map-click movement
-   python main.py --ui --ui-drone-control
+   # Run API server and UI with drone controls, skipping the startup UI prompt
+   python main.py --ui-drone-control
 
    # Retain up to 10,000 HTTP request-history records for the current session
    python main.py --api-only --request-history-limit 10000
@@ -139,7 +141,9 @@ same `ui/img/drone.png` window icon as the dashboard itself.
 
 Drone-control UI actions are disabled by default. Start with
 `--ui-drone-control` to show the **Take Off**/**Land** button and allow
-map-click movement for selected flying drones.
+map-click movement for selected flying drones. When used without `--ui` or
+`--api-only`, `--ui-drone-control` starts the graphical dashboard directly
+instead of asking whether to open the UI.
 
 | Control | Action |
 |---------|--------|
@@ -400,8 +404,9 @@ You can build a standalone executable for Windows, macOS, or Linux with the shar
 Install project dependencies and PyInstaller:
 
 ```bash
-pip install -r requirements.txt
-pip install pyinstaller
+conda activate multiuav-server
+python -m pip install -r requirements.txt
+python -m pip install pyinstaller
 ```
 
 ### Build Command
@@ -455,6 +460,9 @@ Supported CLI options are the same as when running from source:
 
 # UI only
 ./dist/MultiUAV-Plat.Server.v0.xx --ui
+
+# API server and UI with drone controls, skipping the startup UI prompt
+./dist/MultiUAV-Plat.Server.v0.xx --ui-drone-control
 
 # UI only with drone controls
 ./dist/MultiUAV-Plat.Server.v0.xx --ui --ui-drone-control

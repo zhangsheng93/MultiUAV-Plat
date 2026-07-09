@@ -4,7 +4,7 @@ import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { formatDroneInfoLines, formatObstacleInfoLines, formatTargetInfoLines } from './entityLabel';
-import { getTargetVisualState, normalizeCoveragePoints, normalizeCoverageSurfaces, normalizeTargetMotionPath, shouldRenderTargetMotionPath } from './taskVisuals';
+import { getTargetVisualState, normalizeCoverageSurfaces, normalizeTargetMotionPath, shouldRenderTargetMotionPath } from './taskVisuals';
 import {
   getCoverageSurfaceY,
   getTargetBaseColor,
@@ -46,10 +46,8 @@ import type {
 } from './types';
 
 type SelectCallback = (selection: SelectionRef | null) => void;
-type GroundClickCallback = (point: Position) => void;
 type PointerWorldCallback = (point: Position | null) => void;
 type ZoomScaleCallback = (scale: number) => void;
-export type CoverageDisplayMode = 'surface' | 'points' | 'both';
 export type CameraModeResult = { ok: boolean; message?: string; roamSpeedMultiplier?: number };
 export type RoamSpeedResult = CameraModeResult & { multiplier?: number };
 
@@ -533,10 +531,6 @@ export class ViewerScene {
   private readonly roamGhostDrone = makeRoamGhostDrone();
   private roamTrailLine: Line2 | null = null;
   private selectionHighlight: THREE.Object3D | null = null;
-  private readonly movePreview = new THREE.Mesh(
-    new THREE.CylinderGeometry(6, 6, 0.28, 48),
-    new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.46 })
-  );
   private readonly axisGuide = new THREE.Group();
   private readonly ground = new THREE.Mesh(
     new THREE.PlaneGeometry(1024, 768),
@@ -546,14 +540,11 @@ export class ViewerScene {
   private animationFrame = 0;
   private state: ViewerState | null = null;
   private selected: SelectionRef | null = null;
-  private moveMode = false;
-  private directClickMove = false;
   private cameraMode: CameraMode = 'free';
   private selectedDroneId: string | null = null;
   private roamState: RoamState | null = null;
   private trailLength = 80;
   private labelsVisible = DEFAULT_LABELS_VISIBLE;
-  private coverageDisplayMode: CoverageDisplayMode = 'surface';
   private targetMotionVisible = false;
   private visualScaleSettings: VisualScaleSettings = { ...DEFAULT_VISUAL_SCALE_SETTINGS };
   private locale: Locale = 'en-US';
@@ -561,7 +552,6 @@ export class ViewerScene {
   private selectionCycleIndex = 0;
   private selectionCycleCandidates: SelectionRef[] = [];
   private onSelect: SelectCallback = () => undefined;
-  private onGroundClick: GroundClickCallback = () => undefined;
   private onPointerWorld: PointerWorldCallback = () => undefined;
   private onZoomScale: ZoomScaleCallback = () => undefined;
   private zoomBaseDistance = 1024;
@@ -600,9 +590,7 @@ export class ViewerScene {
     configureGrid(this.grid);
     this.axisGuide.name = 'WorldAxisGuide';
     this.axisGuide.frustumCulled = false;
-    this.movePreview.position.y = 0.14;
-    this.movePreview.visible = false;
-    this.root.add(this.movePreview, this.roamGhostDrone);
+    this.root.add(this.roamGhostDrone);
     this.scene.add(this.ground, this.grid, this.axisGuide, this.root);
 
     this.renderer.domElement.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
@@ -619,20 +607,10 @@ export class ViewerScene {
     this.renderer.dispose();
   }
 
-  setCallbacks(onSelect: SelectCallback, onGroundClick: GroundClickCallback, onPointerWorld?: PointerWorldCallback, onZoomScale?: ZoomScaleCallback): void {
+  setCallbacks(onSelect: SelectCallback, onPointerWorld?: PointerWorldCallback, onZoomScale?: ZoomScaleCallback): void {
     this.onSelect = onSelect;
-    this.onGroundClick = onGroundClick;
     this.onPointerWorld = onPointerWorld || (() => undefined);
     this.onZoomScale = onZoomScale || (() => undefined);
-  }
-
-  setMoveMode(enabled: boolean): void {
-    this.moveMode = enabled;
-    this.movePreview.visible = false;
-  }
-
-  setDirectClickMove(enabled: boolean): void {
-    this.directClickMove = enabled;
   }
 
   getCameraMode(): CameraMode {
@@ -709,11 +687,6 @@ export class ViewerScene {
     this.selectionCycleCandidates = selection ? [selection] : [];
     if (this.state) this.renderState(this.state);
     this.onSelect(selection);
-  }
-
-  setCoverageDisplayMode(mode: CoverageDisplayMode): void {
-    this.coverageDisplayMode = mode;
-    if (this.state) this.renderState(this.state);
   }
 
   setTargetMotionVisible(visible: boolean): void {
@@ -1554,7 +1527,7 @@ export class ViewerScene {
 
   private clearStaticObjects(): void {
     this.clearSelectionHighlight();
-    const persistent = new Set<THREE.Object3D>([this.movePreview, this.roamGhostDrone]);
+    const persistent = new Set<THREE.Object3D>([this.roamGhostDrone]);
     if (this.roamTrailLine) persistent.add(this.roamTrailLine);
     this.droneActors.forEach((actor) => {
       persistent.add(actor.group);
@@ -1689,59 +1662,27 @@ export class ViewerScene {
 
   private addCoverageLayer(state: ViewerState, target: TargetState): void {
     const coverageSurfaces = normalizeCoverageSurfaces(state, target.id);
-    const showSurfaces = this.coverageDisplayMode !== 'points';
-    const showPoints = this.coverageDisplayMode !== 'surface';
-    if (coverageSurfaces.length > 0 && showSurfaces) {
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x00e676,
-        transparent: true,
-        opacity: 0.9,
-        side: THREE.DoubleSide
-      });
-      applyStablePlaneMaterial(material, 5);
-      material.depthWrite = false;
-      material.polygonOffsetFactor = -4;
-      material.polygonOffsetUnits = -4;
-      coverageSurfaces.forEach((surface, index) => {
-        const shape = new THREE.Shape(surface.outer.map((point) => toGroundVector2(point)));
-        shape.holes = (surface.holes || []).map((hole) => new THREE.Path(hole.map((point) => toGroundVector2(point))));
-        const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
-        mesh.name = `coverage-surface-${target.id}-${index}`;
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = COVERAGE_SURFACE_Y;
-        mesh.renderOrder = 8;
-        this.root.add(mesh);
-      });
-      if (!showPoints) return;
-    }
-
-    if (!showPoints) return;
-    const coveragePoints = normalizeCoveragePoints(state, target.id);
-    if (coveragePoints.length === 0) return;
-
-    const visiblePoints = coveragePoints.slice(-2000);
-    const geometry = new THREE.CircleGeometry(Math.max(1.8, Math.min(4.5, (target.radius || 24) * 0.08)), 14);
-    geometry.rotateX(-Math.PI / 2);
+    if (coverageSurfaces.length === 0) return;
     const material = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
+      color: 0x00e676,
       transparent: true,
-      opacity: 0.34,
-      depthWrite: true,
-      depthTest: true,
-      polygonOffset: true,
-      polygonOffsetFactor: -3,
-      polygonOffsetUnits: -3
+      opacity: 0.9,
+      side: THREE.DoubleSide
     });
-    const mesh = new THREE.InstancedMesh(geometry, material, visiblePoints.length);
-    mesh.name = `coverage-${target.id}`;
-    mesh.renderOrder = 5;
-    const matrix = new THREE.Matrix4();
-    visiblePoints.forEach((point, index) => {
-      matrix.makeTranslation(point.x, 0.62, worldYToSceneZ(point.y));
-      mesh.setMatrixAt(index, matrix);
+    applyStablePlaneMaterial(material, 5);
+    material.depthWrite = false;
+    material.polygonOffsetFactor = -4;
+    material.polygonOffsetUnits = -4;
+    coverageSurfaces.forEach((surface, index) => {
+      const shape = new THREE.Shape(surface.outer.map((point) => toGroundVector2(point)));
+      shape.holes = (surface.holes || []).map((hole) => new THREE.Path(hole.map((point) => toGroundVector2(point))));
+      const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+      mesh.name = `coverage-surface-${target.id}-${index}`;
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = COVERAGE_SURFACE_Y;
+      mesh.renderOrder = 8;
+      this.root.add(mesh);
     });
-    mesh.instanceMatrix.needsUpdate = true;
-    this.root.add(mesh);
   }
 
   private addTargetMotionPath(target: TargetState): void {
@@ -1824,19 +1765,8 @@ export class ViewerScene {
     const groundHit = this.raycaster.intersectObject(this.ground)[0];
     this.onPointerWorld(groundHit ? sceneGroundToWorld(groundHit.point) : null);
 
-    if (this.moveMode) {
-      if (groundHit) {
-        this.onGroundClick(sceneGroundToWorld(groundHit.point));
-      }
-      return;
-    }
-
     const candidate = this.pickSelectableCandidate(event);
     if (!candidate) {
-      if (this.directClickMove && groundHit) {
-        this.onGroundClick(sceneGroundToWorld(groundHit.point));
-        return;
-      }
       this.clearSelection();
       return;
     }
@@ -1894,18 +1824,12 @@ export class ViewerScene {
   }
 
   private handlePointerMove(event: PointerEvent): void {
-    if (!this.moveMode) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hit = this.raycaster.intersectObject(this.ground)[0];
-    if (!hit) {
-      this.movePreview.visible = false;
-      return;
-    }
-    this.movePreview.position.set(hit.point.x, 0.14, hit.point.z);
-    this.movePreview.visible = true;
+    this.onPointerWorld(hit ? sceneGroundToWorld(hit.point) : null);
   }
 
   private getSceneCenter(): THREE.Vector3 {

@@ -119,9 +119,3 @@ export type SelectionRef = {
 };
 
 export type CameraMode = 'free' | 'top' | 'follow' | 'roam' | 'fit';
-
-export type CommandResult = {
-  ok: boolean;
-  message: string;
-  data?: unknown;
-};

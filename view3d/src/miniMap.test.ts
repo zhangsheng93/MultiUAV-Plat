@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  getMiniMapObstacleColor,
   getMiniMapObstacleShape,
   getMiniMapObstacleRadius,
   getMiniMapTargetShape,
   getMiniMapTargetRadius,
   miniMapToWorld,
+  resolveMiniMapBackingSize,
   resolveMiniMapBounds,
   worldToMiniMap
 } from './miniMap.ts';
+import { OBSTACLE_CIRCLE_COLOR, OBSTACLE_ELLIPSE_COLOR, OBSTACLE_POLYGON_COLOR } from './obstacleVisuals.ts';
 import type { ViewerState } from './types.ts';
 
 function makeState(overrides: Partial<ViewerState> = {}): ViewerState {
@@ -59,6 +62,14 @@ test('mini map maps world points with y-up semantics and can invert the click', 
   assert.deepEqual(worldToMiniMap({ x: 0, y: 0, z: 0 }, bounds, size), { x: 10, y: 150 });
   assert.deepEqual(worldToMiniMap({ x: 400, y: 300, z: 0 }, bounds, size), { x: 210, y: 10 });
   assert.deepEqual(miniMapToWorld({ x: 110, y: 80 }, bounds, size), { x: 200, y: 150, z: 0 });
+});
+
+test('mini map backing size scales with device pixel ratio while preserving css coordinates', () => {
+  const size = { width: 220, height: 160, padding: 10 };
+
+  assert.deepEqual(resolveMiniMapBackingSize(size, 1), { width: 220, height: 160, pixelRatio: 1 });
+  assert.deepEqual(resolveMiniMapBackingSize(size, 2), { width: 440, height: 320, pixelRatio: 2 });
+  assert.deepEqual(resolveMiniMapBackingSize(size, 4), { width: 660, height: 480, pixelRatio: 3 });
 });
 
 test('mini map target radius includes polygon footprint', () => {
@@ -149,4 +160,33 @@ test('mini map obstacle shape preserves ellipse and polygon geometry', () => {
     vertices: obstacle.vertices,
     fallbackRadius: 25
   });
+});
+
+test('mini map obstacle color matches the 3D obstacle color mapping', () => {
+  assert.equal(getMiniMapObstacleColor({
+    id: 'o-circle',
+    name: 'Circle Obstacle',
+    type: 'circle',
+    position: { x: 0, y: 0, z: 0 },
+    radius: 10
+  }), OBSTACLE_CIRCLE_COLOR);
+  assert.equal(getMiniMapObstacleColor({
+    id: 'o-ellipse',
+    name: 'Ellipse Obstacle',
+    type: 'ellipse',
+    position: { x: 0, y: 0, z: 0 },
+    width: 30,
+    length: 50
+  }), OBSTACLE_ELLIPSE_COLOR);
+  assert.equal(getMiniMapObstacleColor({
+    id: 'o-poly',
+    name: 'Polygon Obstacle',
+    type: 'polygon',
+    position: { x: 0, y: 0, z: 0 },
+    vertices: [
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 10, z: 0 }
+    ]
+  }), OBSTACLE_POLYGON_COLOR);
 });

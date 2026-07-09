@@ -53,14 +53,10 @@ scene.setCallbacks(
   (point) => {
     ui.updateClickPosition(point);
   },
-  (point) => {
-    ui.updateClickPosition(point);
-  },
   (scale) => {
     ui.setZoomScale(scale);
   }
 );
-scene.setDirectClickMove(false);
 
 ui.bindScreenshot((format) => {
   void scene.exportScreenshot(format)
@@ -73,8 +69,6 @@ ui.bindScreenshot((format) => {
       });
     });
 });
-ui.bindDisplayLayers((mode) => scene.setCoverageDisplayMode(mode));
-
 ui.bindCamera((mode: CameraMode) => {
   handleCameraModeRequest(mode);
 });
@@ -263,7 +257,6 @@ function applyCameraMode(mode: CameraMode): void {
 
 function clearActiveSelection(): void {
   selected = null;
-  scene.setMoveMode(false);
   scene.clearSelection();
   ui.updateSelection(null);
   setInfoDrawer(false);
@@ -327,7 +320,7 @@ async function refreshState(): Promise<void> {
     ui.updateSelection(selected);
     refreshMiniMap();
   } catch (error) {
-    const message = error instanceof Error ? error.message : t(locale, 'control.backendDisconnected');
+    const message = error instanceof Error ? error.message : t(locale, 'status.backendDisconnected');
     ui.setDisconnected(message);
     if (!latestState) {
       latestState = createDemoState(message);

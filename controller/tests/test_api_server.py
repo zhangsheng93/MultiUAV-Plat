@@ -68,6 +68,36 @@ class TestAPIServerSuccessInference(unittest.TestCase):
             show_error=False,
         )
 
+    def test_session_screenshot_includes_show_label_query_parameter(self):
+        with patch.object(
+            self.api_server,
+            "make_request",
+            return_value=b"image",
+        ) as make_request:
+            response = self.api_server.api_get_session_screenshot(
+                fmt="svg",
+                width=640,
+                height=480,
+                show_status=True,
+                show_label=False,
+                show_error=False,
+            )
+
+        self.assertEqual(response, b"image")
+        make_request.assert_called_once_with(
+            "GET",
+            "/sessions/current/screenshot",
+            params={
+                "format": "svg",
+                "width": 640,
+                "height": 480,
+                "show_status": "true",
+                "show_label": "false",
+            },
+            expect_json=False,
+            show_error=False,
+        )
+
     def test_clear_current_session_request_history_uses_delete_endpoint(self):
         with patch.object(
             self.api_server,

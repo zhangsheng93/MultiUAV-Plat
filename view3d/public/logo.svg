@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">MultiUAV-Plat icon</title>
+  <defs>
+    <linearGradient id="g" x1="10" y1="8" x2="54" y2="56">
+      <stop offset="0" stop-color="#0f7be5"/>
+      <stop offset="1" stop-color="#15b9cc"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#f7fcff"/>
+  <path d="M32 23.5 39 32l-7 8.5L25 32l7-8.5Z" fill="url(#g)"/>
+  <path d="M20.5 20.5 32 32M43.5 20.5 32 32M20.5 43.5 32 32M43.5 43.5 32 32" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="17" cy="17" r="8" fill="#ffffff" stroke="#0f7be5" stroke-width="4"/>
+  <circle cx="47" cy="17" r="8" fill="#ffffff" stroke="#0f7be5" stroke-width="4"/>
+  <circle cx="17" cy="47" r="8" fill="#ffffff" stroke="#15a6d6" stroke-width="4"/>
+  <circle cx="47" cy="47" r="8" fill="#ffffff" stroke="#15a6d6" stroke-width="4"/>
+  <circle cx="17" cy="17" r="3" fill="#0f7be5"/>
+  <circle cx="47" cy="17" r="3" fill="#0f7be5"/>
+  <circle cx="17" cy="47" r="3" fill="#15a6d6"/>
+  <circle cx="47" cy="47" r="3" fill="#15a6d6"/>
+</svg>

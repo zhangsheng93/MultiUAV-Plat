@@ -12,6 +12,7 @@ from api.server import (
     get_current_user_role,
     require_role,
 )
+from config.privilege_keys import SYSTEM_3D_VIEW_PRIVILEGE_KEY
 
 
 class AuthenticationKeyTests(unittest.TestCase):
@@ -25,6 +26,16 @@ class AuthenticationKeyTests(unittest.TestCase):
                 self.assertGreaterEqual(len(ROLE_SECRET_KEYS[role]), 3)
                 for key in ROLE_SECRET_KEYS[role]:
                     self.assertEqual(get_current_user_role(key), role)
+
+    def test_3d_view_system_key_authenticates_as_system_when_configured(self):
+        if not SYSTEM_3D_VIEW_PRIVILEGE_KEY:
+            self.skipTest("MULTIUAV_3D_VIEW_SYSTEM_KEY is not configured")
+
+        self.assertIn(SYSTEM_3D_VIEW_PRIVILEGE_KEY, ROLE_SECRET_KEYS[UserRole.SYSTEM])
+        self.assertEqual(
+            get_current_user_role(SYSTEM_3D_VIEW_PRIVILEGE_KEY),
+            UserRole.SYSTEM,
+        )
 
     def test_role_secrets_keep_first_key_compatibility(self):
         for role, keys in ROLE_SECRET_KEYS.items():

@@ -30,6 +30,7 @@ type CoreMessageKey =
   | 'status.disconnected'
   | 'status.noSession'
   | 'status.warningNoSession'
+  | 'status.backendDisconnected'
   | 'session.summary'
   | 'summary.task'
   | 'summary.finished'
@@ -66,7 +67,6 @@ type CoreMessageKey =
   | 'field.pathPoints'
   | 'field.velocity'
   | 'field.taskStatus'
-  | 'field.coveragePoints'
   | 'field.coverageProgress'
   | 'field.charge'
   | 'field.height'
@@ -76,76 +76,15 @@ type CoreMessageKey =
   | 'field.name'
   | 'field.width'
   | 'field.length'
-  | 'field.movingDuration'
-  | 'field.movingPath'
-  | 'field.polygonVertices'
-  | 'field.velocityX'
-  | 'field.velocityY'
-  | 'field.velocityZ'
-  | 'control.basic'
-  | 'control.altitude'
-  | 'control.perceivedRadius'
-  | 'control.takeoff'
-  | 'control.land'
-  | 'control.hover'
-  | 'control.returnHome'
-  | 'control.charge'
-  | 'control.emergency'
-  | 'control.updatePerceivedRadius'
-  | 'control.moveMode'
-  | 'control.selectDrone'
-  | 'control.backendDisconnected'
-  | 'control.moveModeOn'
-  | 'control.moveModeOff'
-  | 'movement.title'
-  | 'movement.step'
-  | 'movement.altitudeStep'
-  | 'movement.up'
-  | 'movement.forward'
-  | 'movement.left'
-  | 'movement.right'
-  | 'movement.backward'
-  | 'movement.down'
-  | 'editor.title'
-  | 'editor.toggleOn'
-  | 'editor.toggleOff'
-  | 'editor.addDrone'
-  | 'editor.addTarget'
-  | 'editor.addObstacle'
-  | 'editor.moveSelected'
-  | 'editor.duplicate'
-  | 'editor.delete'
-  | 'editor.selection'
-  | 'editor.snapGrid'
-  | 'editor.save'
-  | 'editor.saveAs'
-  | 'editor.discard'
-  | 'editor.off'
-  | 'editor.selectToEdit'
-  | 'editor.ready'
-  | 'editor.updated'
-  | 'editor.added'
-  | 'editor.duplicated'
-  | 'editor.deleted'
-  | 'editor.moved'
-  | 'editor.moveOn'
-  | 'editor.moveOff'
-  | 'editor.snapOn'
-  | 'editor.snapOff'
-  | 'editor.selectionChanged'
-  | 'editor.selectionNoOverlap'
-  | 'editor.noSession'
-  | 'editor.noSaveSession'
-  | 'editor.saveStart'
-  | 'editor.saveDone'
-  | 'editor.saveAsPrompt'
-  | 'editor.saveAsStart'
-  | 'editor.saveAsDone'
-  | 'editor.unsavedConfirm'
-  | 'editor.unsavedUnload'
-  | 'editor.discarded'
-  | 'editor.enableFirst'
-  | 'editor.selectFirst'
+  | 'screenshot.capture'
+  | 'screenshot.format'
+  | 'nav.label'
+  | 'nav.panUp'
+  | 'nav.panDown'
+  | 'nav.panLeft'
+  | 'nav.panRight'
+  | 'nav.reset'
+  | 'nav.zoomScale'
   | 'footer.live'
   | 'footer.paused'
   | 'footer.labelsOn'
@@ -206,6 +145,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'status.disconnected': '未连接',
     'status.noSession': '无会话',
     'status.warningNoSession': '无 current session',
+    'status.backendDisconnected': '后端未连接，正在显示演示场景。',
     'session.summary': '{drones} 架无人机 · {targets} 个目标 · {obstacles} 个障碍物',
     'summary.task': '任务: {progress}%',
     'summary.finished': '任务已完成',
@@ -242,7 +182,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'field.pathPoints': '路径点数',
     'field.velocity': '速度向量',
     'field.taskStatus': '任务状态',
-    'field.coveragePoints': '覆盖点数',
     'field.coverageProgress': '覆盖进度',
     'field.charge': '充电量',
     'field.height': '高度',
@@ -252,27 +191,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'field.name': '名称',
     'field.width': '宽度',
     'field.length': '长度',
-    'field.movingDuration': '移动时长',
-    'field.movingPath': '移动路径',
-    'field.polygonVertices': '多边形顶点',
-    'field.velocityX': '速度 X',
-    'field.velocityY': '速度 Y',
-    'field.velocityZ': '速度 Z',
-    'control.basic': '基础控制',
-    'control.altitude': '起飞/移动高度',
-    'control.perceivedRadius': '感知半径',
-    'control.takeoff': '起飞',
-    'control.land': '降落',
-    'control.hover': '悬停',
-    'control.returnHome': '返航',
-    'control.charge': '充电',
-    'control.emergency': '应急',
-    'control.updatePerceivedRadius': '更新感知半径',
-    'control.moveMode': '点击地面移动',
-    'control.selectDrone': '选择无人机后可控制。',
-    'control.backendDisconnected': '后端未连接，正在显示演示场景。',
-    'control.moveModeOn': '移动模式：点击地面发送 move_to。',
-    'control.moveModeOff': '移动模式已关闭。',
     'screenshot.capture': '截图',
     'screenshot.format': '截图格式',
     'nav.label': '视图导航',
@@ -282,91 +200,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'nav.panRight': '右移视图',
     'nav.reset': '重置视图',
     'nav.zoomScale': '快速缩放比例尺',
-    'backend.title': '后端联调',
-    'backend.coverageDisplay': '覆盖显示',
-    'backend.coverageSurface': '连续面',
-    'backend.coveragePoints': '2D 覆盖点',
-    'backend.coverageBoth': '连续面 + 覆盖点',
-    'backend.currentSession': '当前会话',
-    'backend.refreshSessions': '刷新会话',
-    'backend.switch': '切换',
-    'backend.resetCurrent': '重置当前',
-    'backend.exportJson': '导出 JSON',
-    'backend.deleteSession': '删除会话',
-    'backend.screenshot': '后端截图',
-    'backend.size': '尺寸',
-    'backend.includeStatus': '包含状态/路径/覆盖信息',
-    'backend.initialStatus': '可直接调用原始后端会话与截图接口。',
-    'task.title': '任务与检查',
-    'task.current': '当前任务',
-    'task.refresh': '刷新任务',
-    'task.next': '下一个',
-    'task.inspect': '详情',
-    'task.check': '检查',
-    'task.markDone': '标记完成',
-    'task.markPending': '标记待完成',
-    'task.sinceTimestamp': 'since_timestamp 可选',
-    'task.sincePlaceholder': '例如 1710000000.0',
-    'task.checkEndpoint': '检查端点',
-    'task.checkParams': '检查参数 JSON',
-    'task.runCheck': '运行检查',
-    'task.initialStatus': '任务队列和 /check 结果会显示在这里。',
-    'advanced.title': '高级命令',
-    'advanced.droneId': '无人机 ID',
-    'advanced.droneIdPlaceholder': '选中无人机会自动填充',
-    'advanced.command': '命令',
-    'advanced.params': '参数 JSON',
-    'advanced.send': '发送高级命令',
-    'advanced.initialStatus': '高级命令通过 /drones/{id}/command 发送。',
-    'movement.title': '实时移动',
-    'movement.step': '平移步长',
-    'movement.altitudeStep': '高度步长',
-    'movement.up': '升',
-    'movement.forward': '前',
-    'movement.left': '左',
-    'movement.right': '右',
-    'movement.backward': '后',
-    'movement.down': '降',
-    'editor.title': '场景编辑',
-    'editor.toggleOn': '编辑',
-    'editor.toggleOff': '退出',
-    'editor.addDrone': '加无人机',
-    'editor.addTarget': '加目标',
-    'editor.addObstacle': '加障碍',
-    'editor.moveSelected': '移动选中',
-    'editor.duplicate': '复制',
-    'editor.delete': '删除',
-    'editor.selection': 'Selection',
-    'editor.snapGrid': '网格吸附',
-    'editor.save': '保存',
-    'editor.saveAs': '另存为',
-    'editor.discard': '放弃',
-    'editor.off': '编辑模式未开启。',
-    'editor.selectToEdit': '选择对象后可编辑。',
-    'editor.ready': '编辑草稿已就绪。',
-    'editor.updated': '草稿已更新。',
-    'editor.added': '已新增对象。',
-    'editor.duplicated': '已复制选中对象。',
-    'editor.deleted': '已删除选中对象。',
-    'editor.moved': '选中对象已移动到点击位置。',
-    'editor.moveOn': '移动选中已开启。',
-    'editor.moveOff': '移动选中已关闭。',
-    'editor.snapOn': '网格吸附已开启。',
-    'editor.snapOff': '网格吸附已关闭。',
-    'editor.selectionChanged': '已切换到重叠位置的下一个对象。',
-    'editor.selectionNoOverlap': '当前位置没有可轮选的重叠对象。',
-    'editor.noSession': '当前没有可编辑的活动会话。',
-    'editor.noSaveSession': '当前没有可保存的会话。',
-    'editor.saveStart': '正在保存场景数据...',
-    'editor.saveDone': '场景数据已保存。',
-    'editor.saveAsPrompt': '输入新会话名称',
-    'editor.saveAsStart': '正在另存为新会话...',
-    'editor.saveAsDone': '已另存为新会话。',
-    'editor.unsavedConfirm': '当前有未保存改动，确定放弃吗？',
-    'editor.unsavedUnload': '当前有未保存改动。',
-    'editor.discarded': '已放弃未保存改动。',
-    'editor.enableFirst': '请先开启编辑模式。',
-    'editor.selectFirst': '请先选择对象。',
     'footer.live': '实时',
     'footer.paused': '暂停',
     'footer.labelsOn': '隐藏标签',
@@ -426,6 +259,7 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'status.disconnected': 'Disconnected',
     'status.noSession': 'No Session',
     'status.warningNoSession': 'No current session',
+    'status.backendDisconnected': 'Backend disconnected. Showing demo scene.',
     'session.summary': '{drones} drones · {targets} targets · {obstacles} obstacles',
     'summary.task': 'Task: {progress}%',
     'summary.finished': 'Task Finished',
@@ -462,7 +296,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'field.pathPoints': 'Path Points',
     'field.velocity': 'Velocity',
     'field.taskStatus': 'Task Status',
-    'field.coveragePoints': 'Coverage Points',
     'field.coverageProgress': 'Coverage Progress',
     'field.charge': 'Charge',
     'field.height': 'Height',
@@ -472,27 +305,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'field.name': 'Name',
     'field.width': 'Width',
     'field.length': 'Length',
-    'field.movingDuration': 'Moving Duration',
-    'field.movingPath': 'Moving Path',
-    'field.polygonVertices': 'Polygon Vertices',
-    'field.velocityX': 'Velocity X',
-    'field.velocityY': 'Velocity Y',
-    'field.velocityZ': 'Velocity Z',
-    'control.basic': 'Basic Control',
-    'control.altitude': 'Takeoff / Move Altitude',
-    'control.perceivedRadius': 'Perception Radius',
-    'control.takeoff': 'Take Off',
-    'control.land': 'Land',
-    'control.hover': 'Hover',
-    'control.returnHome': 'Return',
-    'control.charge': 'Charge',
-    'control.emergency': 'Emergency',
-    'control.updatePerceivedRadius': 'Update Perception',
-    'control.moveMode': 'Click Ground to Move',
-    'control.selectDrone': 'Select a drone to control it.',
-    'control.backendDisconnected': 'Backend disconnected. Showing demo scene.',
-    'control.moveModeOn': 'Move mode: click ground to send move_to.',
-    'control.moveModeOff': 'Move mode off.',
     'screenshot.capture': 'Capture',
     'screenshot.format': 'Screenshot Format',
     'nav.label': 'View Navigation',
@@ -502,91 +314,6 @@ const messages: Record<Locale, Record<MessageKey | CoreMessageKey, string>> = {
     'nav.panRight': 'Pan View Right',
     'nav.reset': 'Reset View',
     'nav.zoomScale': 'Quick Zoom Scale',
-    'backend.title': 'Backend Tools',
-    'backend.coverageDisplay': 'Coverage Display',
-    'backend.coverageSurface': 'Continuous Surface',
-    'backend.coveragePoints': '2D Coverage Points',
-    'backend.coverageBoth': 'Surface + Points',
-    'backend.currentSession': 'Current Session',
-    'backend.refreshSessions': 'Refresh Sessions',
-    'backend.switch': 'Switch',
-    'backend.resetCurrent': 'Reset Current',
-    'backend.exportJson': 'Export JSON',
-    'backend.deleteSession': 'Delete Session',
-    'backend.screenshot': 'Backend Screenshot',
-    'backend.size': 'Size',
-    'backend.includeStatus': 'Include status / paths / coverage',
-    'backend.initialStatus': 'Calls the original backend session and screenshot APIs directly.',
-    'task.title': 'Tasks & Checks',
-    'task.current': 'Current Task',
-    'task.refresh': 'Refresh Tasks',
-    'task.next': 'Next',
-    'task.inspect': 'Details',
-    'task.check': 'Check',
-    'task.markDone': 'Mark Done',
-    'task.markPending': 'Mark Pending',
-    'task.sinceTimestamp': 'since_timestamp optional',
-    'task.sincePlaceholder': 'Example: 1710000000.0',
-    'task.checkEndpoint': 'Check Endpoint',
-    'task.checkParams': 'Check Params JSON',
-    'task.runCheck': 'Run Check',
-    'task.initialStatus': 'Task queue and /check results appear here.',
-    'advanced.title': 'Advanced Commands',
-    'advanced.droneId': 'Drone ID',
-    'advanced.droneIdPlaceholder': 'Auto-filled from selected drone',
-    'advanced.command': 'Command',
-    'advanced.params': 'Params JSON',
-    'advanced.send': 'Send Advanced Command',
-    'advanced.initialStatus': 'Advanced commands are sent through /drones/{id}/command.',
-    'movement.title': 'Live Movement',
-    'movement.step': 'Move Step',
-    'movement.altitudeStep': 'Altitude Step',
-    'movement.up': 'Up',
-    'movement.forward': 'Forward',
-    'movement.left': 'Left',
-    'movement.right': 'Right',
-    'movement.backward': 'Back',
-    'movement.down': 'Down',
-    'editor.title': 'Scene Editor',
-    'editor.toggleOn': 'Edit',
-    'editor.toggleOff': 'Exit',
-    'editor.addDrone': 'Add Drone',
-    'editor.addTarget': 'Add Target',
-    'editor.addObstacle': 'Add Obstacle',
-    'editor.moveSelected': 'Move Selected',
-    'editor.duplicate': 'Duplicate',
-    'editor.delete': 'Delete',
-    'editor.selection': 'Selection',
-    'editor.snapGrid': 'Snap to Grid',
-    'editor.save': 'Save',
-    'editor.saveAs': 'Save As',
-    'editor.discard': 'Discard',
-    'editor.off': 'Edit mode is off.',
-    'editor.selectToEdit': 'Select an object to edit.',
-    'editor.ready': 'Edit draft is ready.',
-    'editor.updated': 'Draft updated.',
-    'editor.added': 'Object added.',
-    'editor.duplicated': 'Selected object duplicated.',
-    'editor.deleted': 'Selected object deleted.',
-    'editor.moved': 'Selected object moved to the clicked position.',
-    'editor.moveOn': 'Move selected is on.',
-    'editor.moveOff': 'Move selected is off.',
-    'editor.snapOn': 'Snap to grid is on.',
-    'editor.snapOff': 'Snap to grid is off.',
-    'editor.selectionChanged': 'Switched to the next overlapping object.',
-    'editor.selectionNoOverlap': 'No overlapping object to cycle at this position.',
-    'editor.noSession': 'No active editable session.',
-    'editor.noSaveSession': 'No session to save.',
-    'editor.saveStart': 'Saving scene data...',
-    'editor.saveDone': 'Scene data saved.',
-    'editor.saveAsPrompt': 'Enter a new session name',
-    'editor.saveAsStart': 'Saving as a new session...',
-    'editor.saveAsDone': 'Scene saved as a new session.',
-    'editor.unsavedConfirm': 'You have unsaved changes. Discard them?',
-    'editor.unsavedUnload': 'You have unsaved changes.',
-    'editor.discarded': 'Unsaved changes discarded.',
-    'editor.enableFirst': 'Turn on edit mode first.',
-    'editor.selectFirst': 'Select an object first.',
     'footer.live': 'Live',
     'footer.paused': 'Paused',
     'footer.labelsOn': 'Hide Labels',
@@ -678,54 +405,17 @@ const controlledValues: Record<Locale, Record<string, string>> = {
     true: 'Yes',
     false: 'No',
     '不可飞越': 'Not flyable',
-    '正在更新感知半径...': 'Updating perception radius...',
     '无 current session': 'No current session',
     '请先选择一架无人机。': 'Select a drone first.',
     '该无人机没有可漫游路径。': 'The selected drone has no path to roam.',
     '请先进入漫游模式。': 'Enter roam mode first.',
-    '感知半径必须大于 0。': 'Perception radius must be greater than 0.',
-    '无人机已更新': 'Drone updated',
-    '无人机更新请求超时': 'Drone update request timed out',
-    '无人机更新请求失败': 'Drone update request failed',
-    '无人机需要降落并处于 idle 状态才能充电。': 'The drone must be landed and idle before charging.',
-    '当前状态不需要应急降落。': 'The current state does not need emergency landing.',
-    '请选择会话。': 'Select a session.',
-    '请选择任务。': 'Select a task.',
-    '已取消。': 'Canceled.',
-    '当前没有可导出的会话。': 'No session available to export.',
-    '不能删除唯一的会话，请先创建或切换到其他会话。': 'Cannot delete the only session. Create or switch to another session first.',
-    '请填写无人机 ID，或先选中无人机。': 'Enter a drone ID or select a drone first.',
-    '参数必须是 JSON 对象。': 'Parameters must be a JSON object.',
-    'since_timestamp 必须是数字。': 'since_timestamp must be a number.',
-    '请求中...': 'Requesting...',
-    '请求失败': 'Request failed',
-    '无会话': 'No Session',
-    '无任务': 'No Task',
-    '未命名': 'Unnamed',
-    '截图导出失败': 'Screenshot export failed',
-    '已取消选择。': 'Selection cleared.',
-    '命令已发送': 'Command sent',
-    '命令请求失败': 'Command request failed'
+    '截图导出失败': 'Screenshot export failed.',
+    '已取消选择。': 'Selection cleared.'
   }
 };
 
 const enMessagePatterns: Array<[RegExp, (match: RegExpMatchArray) => string]> = [
-  [/^当前状态 (.+) 不允许普通控制。$/, (match) => `Current status ${translateDataValue('en-US', match[1])} does not allow normal control.`],
-  [/^当前状态 (.+) 不允许相对移动。$/, (match) => `Current status ${translateDataValue('en-US', match[1])} does not allow relative movement.`],
-  [/^当前状态 (.+) 不允许移动。$/, (match) => `Current status ${translateDataValue('en-US', match[1])} does not allow movement.`],
-  [/^未知命令: (.+)$/, (match) => `Unknown command: ${match[1]}`],
-  [/^当前会话接口失败: HTTP (.+)$/, (match) => `Current session API failed: HTTP ${match[1]}`],
-  [/^状态接口失败: HTTP (.+)$/, (match) => `State API failed: HTTP ${match[1]}`],
-  [/^会话数据接口失败: HTTP (.+)$/, (match) => `Session data API failed: HTTP ${match[1]}`],
-  [/^保存会话失败: HTTP (.+)$/, (match) => `Save session failed: HTTP ${match[1]}`],
-  [/^创建会话失败: HTTP (.+)$/, (match) => `Create session failed: HTTP ${match[1]}`],
-  [/^切换会话失败: HTTP (.+)$/, (match) => `Switch session failed: HTTP ${match[1]}`],
-  [/^后端截图失败: HTTP (.+)$/, (match) => `Backend screenshot failed: HTTP ${match[1]}`],
-  [/^命令失败: HTTP (.+)$/, (match) => `Command failed: HTTP ${match[1]}`],
-  [/^确认删除会话 (.+)？$/, (match) => `Delete session ${match[1]}?`],
-  [/^当前历史字段: (.+)$/, (match) => `Current history fields: ${match[1]}`],
-  [/^路径被障碍物 (.+) 阻挡$/, (match) => `Path blocked by obstacle ${match[1]}`],
-  [/^路径与障碍物 (.+) 相交$/, (match) => `Path intersects obstacle ${match[1]}`]
+  [/^当前会话接口失败: HTTP (.+)$/, (match) => `Current session API failed: HTTP ${match[1]}`]
 ];
 
 const zhNamePatterns: Array<[RegExp, string]> = [
@@ -758,24 +448,23 @@ export function t(locale: Locale, key: MessageKey, params: Record<string, string
 
 export function translateDataValue(locale: Locale, value: unknown): string {
   if (value === null || value === undefined || value === '') return '-';
-  const text = String(value);
-  const exact = controlledValues[locale][text];
-  if (exact) return exact;
+  const raw = String(value);
+  const direct = controlledValues[locale][raw];
+  if (direct) return direct;
 
   if (locale === 'en-US') {
-    for (const [pattern, replace] of enMessagePatterns) {
-      const match = text.match(pattern);
-      if (match) return replace(match);
+    for (const [pattern, formatter] of enMessagePatterns) {
+      const match = raw.match(pattern);
+      if (match) return formatter(match);
+    }
+    for (const [pattern, replacement] of zhNamePatterns) {
+      if (pattern.test(raw)) return raw.replace(pattern, replacement);
+    }
+  } else {
+    for (const [pattern, replacement] of enNamePatterns) {
+      if (pattern.test(raw)) return raw.replace(pattern, replacement);
     }
   }
 
-  const patterns = locale === 'en-US' ? zhNamePatterns : enNamePatterns;
-  for (const [pattern, replacement] of patterns) {
-    if (pattern.test(text)) return text.replace(pattern, replacement);
-  }
-
-  if (locale === 'en-US' && /^[a-z]+(?:_[a-z]+)+$/.test(text)) {
-    return text.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
-  }
-  return text;
+  return raw;
 }

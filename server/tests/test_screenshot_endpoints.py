@@ -3,7 +3,19 @@ import unittest
 
 from fastapi.testclient import TestClient
 
-from api.server import ROLE_SECRETS, UserRole, app, session_controller
+from api.server import (
+    ROLE_SECRETS,
+    UserRole,
+    app,
+    drone_controller,
+    obstacle_controller,
+    session_controller,
+    target_controller,
+)
+from models.drone import Drone
+from models.obstacle import Obstacle, ObstacleType
+from models.session import Session
+from models.target import Target, TargetType
 
 
 class ScreenshotEndpointTests(unittest.TestCase):
@@ -73,6 +85,49 @@ class ScreenshotEndpointTests(unittest.TestCase):
 
     def _sync_session(self, session_id: str) -> None:
         session_controller._save_current_data_to_session(session_id)  # type: ignore[attr-defined]
+
+    def _seed_minimal_screenshot_session(self) -> str:
+        suffix = int(time.time() * 1_000_000)
+        session_id = f"label-session-{suffix}"
+        session = Session(
+            name=f"label-session-{suffix}",
+            description="Minimal session for screenshot label tests",
+            session_id=session_id,
+            task_type="others",
+            task_description="Screenshot label test task",
+            creator="test",
+        )
+        session_controller.sessions[session_id] = session
+        session_controller.current_session_id = session_id
+
+        drone = Drone(
+            name="Label Scout",
+            model="ScreenshotTestModel",
+            max_speed=10.0,
+            max_altitude=50.0,
+            battery_capacity=100.0,
+            position={"x": 0.0, "y": 0.0, "z": 0.0},
+            drone_id=f"drone-{suffix}",
+        )
+        target = Target(
+            name="Label Target",
+            target_type=TargetType.FIXED,
+            position={"x": 0.0, "y": 8.0, "z": 0.0},
+            radius=2.0,
+            target_id=f"target-{suffix}",
+        )
+        obstacle = Obstacle(
+            name="Label Rock",
+            obstacle_type=ObstacleType.POINT,
+            position={"x": -3.0, "y": 2.0, "z": 0.0},
+            radius=1.0,
+            height=0,
+            obstacle_id=f"obstacle-{suffix}",
+        )
+        drone_controller.drones[drone.id] = drone
+        target_controller.targets[target.id] = target
+        obstacle_controller.obstacles[obstacle.id] = obstacle
+        return session_id
 
     def _prepare_status_rich_session(self) -> str:
         session_id = self._create_session(task_type="area_search")
@@ -155,9 +210,33 @@ class ScreenshotEndpointTests(unittest.TestCase):
         self.assertIn("System: Ready", body)
         self.assertIn("LowerLeft:", body)
         self.assertIn("Dro/Tar/Obs:", body)
+        self.assertIn("Scout", body)
+        self.assertIn("Fixed Alpha", body)
+        self.assertIn("Rock", body)
         self.assertIn("Type: Fixed", body)
         self.assertIn("Type: Point", body)
         self.assertIn("ID:", body)
+
+    def test_svg_screenshot_can_hide_object_labels(self):
+        session_id = self._seed_minimal_screenshot_session()
+        resp = self.client.get(
+            f"/sessions/{session_id}/screenshot",
+            headers=self.admin_headers,
+            params={"format": "svg", "show_status": "true", "show_label": "false", "width": 900, "height": 700},
+        )
+        self.assertEqual(resp.status_code, 200, resp.text)
+        self.assertEqual(resp.headers["content-type"], "image/svg+xml")
+        body = resp.content.decode("utf-8")
+        self.assertIn("<svg", body)
+        self.assertIn("System: Ready", body)
+        self.assertIn("LowerLeft:", body)
+        self.assertIn("Dro/Tar/Obs:", body)
+        self.assertNotIn("Label Scout", body)
+        self.assertNotIn("Label Target", body)
+        self.assertNotIn("Label Rock", body)
+        self.assertNotIn("Type: Fixed", body)
+        self.assertNotIn("Type: Point", body)
+        self.assertNotIn("ID:", body)
 
     def test_eps_screenshot_for_specific_session(self):
         session_id = self._prepare_status_rich_session()

@@ -1,5 +1,6 @@
 import type { ObstacleState, Position, TargetState, ViewerState } from './types';
 import { resolveSceneBounds, type SceneBounds } from './sceneBounds.ts';
+import { getObstacleBaseColor } from './obstacleVisuals.ts';
 
 export type MiniMapBounds = Pick<SceneBounds, 'minX' | 'minY' | 'maxX' | 'maxY'>;
 
@@ -7,6 +8,12 @@ export type MiniMapSize = {
   width: number;
   height: number;
   padding: number;
+};
+
+export type MiniMapBackingSize = {
+  width: number;
+  height: number;
+  pixelRatio: number;
 };
 
 export type MiniMapObjectShape =
@@ -38,6 +45,15 @@ export function miniMapToWorld(point: { x: number; y: number }, bounds: MiniMapB
     x: bounds.minX + Math.max(0, Math.min(1, normalizedX)) * (bounds.maxX - bounds.minX),
     y: bounds.minY + Math.max(0, Math.min(1, normalizedY)) * (bounds.maxY - bounds.minY),
     z: 0
+  };
+}
+
+export function resolveMiniMapBackingSize(size: MiniMapSize, devicePixelRatio: number): MiniMapBackingSize {
+  const pixelRatio = Math.min(Math.max(devicePixelRatio || 1, 1), 3);
+  return {
+    width: Math.max(1, Math.round(size.width * pixelRatio)),
+    height: Math.max(1, Math.round(size.height * pixelRatio)),
+    pixelRatio
   };
 }
 
@@ -89,4 +105,8 @@ export function getMiniMapObstacleShape(obstacle: ObstacleState): MiniMapObjectS
     };
   }
   return { kind: 'circle', radius: getMiniMapObstacleRadius(obstacle) };
+}
+
+export function getMiniMapObstacleColor(obstacle: ObstacleState): number {
+  return getObstacleBaseColor(obstacle.type);
 }

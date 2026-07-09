@@ -762,12 +762,14 @@ class UAVControllerGUI:
             width = int(options.get('width', 1280))
             height = int(options.get('height', 720))
             show_status = bool(options.get('show_status', False))
+            show_label = bool(options.get('show_label', True))
             self.logger.info(
-                "Screenshot options selected: format=%s, width=%s, height=%s, show_status=%s",
+                "Screenshot options selected: format=%s, width=%s, height=%s, show_status=%s, show_label=%s",
                 fmt,
                 width,
                 height,
-                show_status
+                show_status,
+                show_label
             )
 
             # Ensure the chosen format drives the default extension and filetype order
@@ -817,7 +819,13 @@ class UAVControllerGUI:
 
             self.logger.info(f"User selected save path: {file_path}")
 
-            content = self.fetch_session_screenshot(fmt=fmt, width=width, height=height, show_status=show_status)
+            content = self.fetch_session_screenshot(
+                fmt=fmt,
+                width=width,
+                height=height,
+                show_status=show_status,
+                show_label=show_label
+            )
             if content:
                 # Ensure directory exists
                 file_dir = os.path.dirname(file_path)
@@ -835,13 +843,14 @@ class UAVControllerGUI:
                 if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                     file_size = os.path.getsize(file_path)
                     self.logger.info(
-                        "Screenshot saved successfully to local folder: %s (size: %s bytes, format: %s, dimensions: %sx%s, show_status=%s)",
+                        "Screenshot saved successfully to local folder: %s (size: %s bytes, format: %s, dimensions: %sx%s, show_status=%s, show_label=%s)",
                         file_path,
                         file_size,
                         fmt,
                         width,
                         height,
-                        show_status
+                        show_status,
+                        show_label
                     )
                     messagebox.showinfo("Saved", f"Screenshot saved to:\n{file_path}")
                 else:
@@ -862,7 +871,7 @@ class UAVControllerGUI:
         # Create dialog
         dialog = tk.Toplevel(self.root)
         dialog.title("Screenshot Options")
-        set_window_geometry_and_center(dialog, 340, 190, self.root)
+        set_window_geometry_and_center(dialog, 340, 225, self.root)
         dialog.resizable(False, False)
 
         frame = ttk.Frame(dialog, padding="16")
@@ -898,11 +907,22 @@ class UAVControllerGUI:
         show_status_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(frame, variable=show_status_var).grid(row=2, column=1, sticky=tk.W, padx=(8, 0), pady=(8, 0))
 
+        ttk.Label(frame, text="Show Labels:").grid(row=3, column=0, sticky=tk.W, pady=(8, 0))
+        show_label_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(frame, variable=show_label_var).grid(row=3, column=1, sticky=tk.W, padx=(8, 0), pady=(8, 0))
+
         # Buttons
         button_frame = ttk.Frame(frame)
-        button_frame.grid(row=3, column=0, columnspan=2, sticky=tk.E, pady=(16, 0))
+        button_frame.grid(row=4, column=0, columnspan=2, sticky=tk.E, pady=(16, 0))
 
-        result = { 'format': None, 'width': None, 'height': None, 'scale': None, 'show_status': False }
+        result = {
+            'format': None,
+            'width': None,
+            'height': None,
+            'scale': None,
+            'show_status': False,
+            'show_label': True,
+        }
 
         def on_ok():
             fmt = fmt_var.get().strip().lower()
@@ -922,6 +942,7 @@ class UAVControllerGUI:
                 'height': height,
                 'scale': scale_label,
                 'show_status': bool(show_status_var.get()),
+                'show_label': bool(show_label_var.get()),
             })
             dialog.destroy()
 
@@ -983,7 +1004,8 @@ class UAVControllerGUI:
         fmt: str = "png",
         width: int = 1024,
         height: int = 768,
-        show_status: bool = False
+        show_status: bool = False,
+        show_label: bool = True
     ) -> Optional[bytes]:
         """Download a screenshot of the current session from the server.
 
@@ -994,6 +1016,7 @@ class UAVControllerGUI:
             width=width,
             height=height,
             show_status=show_status,
+            show_label=show_label,
             show_error=True
         )
 

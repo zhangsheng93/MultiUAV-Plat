@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   getTargetVisualState,
-  normalizeCoveragePoints,
   normalizeCoverageSurfaces,
   normalizeTargetMotionPath,
   shouldRenderTargetMotionPath,
@@ -38,42 +37,6 @@ function makeState(overrides: Partial<ViewerState> = {}): ViewerState {
   };
 }
 
-test('normalizes coverage points from history payload and filters invalid entries', () => {
-  const state = makeState({
-    history: {
-      area_coverage: {
-        'area-1': {
-          covered_points: [
-            [10, 20],
-            { x: 12.5, y: 24.25, z: 3 },
-            ['bad', 30],
-            [40]
-          ]
-        }
-      }
-    }
-  } as Partial<ViewerState>);
-
-  assert.deepEqual(normalizeCoveragePoints(state, 'area-1'), [
-    { x: 10, y: 20, z: 0 },
-    { x: 12.5, y: 24.25, z: 3 }
-  ]);
-});
-
-test('normalizes coverage points from top-level session payload', () => {
-  const state = makeState({
-    area_coverage: {
-      'area-1': {
-        covered_points: [[100, 120, 4]]
-      }
-    }
-  } as Partial<ViewerState>);
-
-  assert.deepEqual(normalizeCoveragePoints(state, 'area-1'), [
-    { x: 100, y: 120, z: 4 }
-  ]);
-});
-
 test('normalizes continuous coverage surfaces from viewer payload', () => {
   const state = makeState({
     area_coverage_surfaces: {
@@ -98,17 +61,8 @@ test('normalizes continuous coverage surfaces from viewer payload', () => {
   assert.equal(surfaces[0].holes?.[0].length, 3);
 });
 
-test('summarizes coverage count and percentage from task progress when present', () => {
-  const state = makeState({
-    history: {
-      area_coverage: {
-        'area-1': { covered_points: [[1, 2], [3, 4], [5, 6]] }
-      }
-    }
-  } as Partial<ViewerState>);
-
-  assert.deepEqual(summarizeCoverage(state, 'area-1'), {
-    points: 3,
+test('summarizes coverage percentage from task progress when present', () => {
+  assert.deepEqual(summarizeCoverage(makeState(), 'area-1'), {
     progressPercentage: 38
   });
 });

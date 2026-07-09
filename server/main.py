@@ -152,6 +152,11 @@ def ask_show_ui():
         return None
 
 
+def should_auto_start_ui(args: argparse.Namespace) -> bool:
+    """Return whether startup should open the UI without showing the prompt."""
+    return bool(args.ui_drone_control)
+
+
 def start_simulation():
     """Run simulation updates for targets and environment"""
     while True:
@@ -269,8 +274,12 @@ def main():
         # Give API server a moment to start
         time.sleep(0.5)
 
-        # Show graphical dialog asking if user wants UI (runs on main thread)
-        show_ui = ask_show_ui()
+        if should_auto_start_ui(args):
+            logger.info("UI drone controls requested; starting UI without startup prompt.")
+            show_ui = True
+        else:
+            # Show graphical dialog asking if user wants UI (runs on main thread)
+            show_ui = ask_show_ui()
 
         if show_ui is None:
             # Handle close button (X) on dialog as no

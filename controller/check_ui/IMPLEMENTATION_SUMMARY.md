@@ -224,7 +224,7 @@ Export Results → Generate JSON → Save to File
 
 ### File Structure
 ```
-controller/
+ui_controller/
 ├── check_ui/                    # NEW FOLDER
 │   ├── __init__.py             # NEW
 │   ├── agent_client.py         # NEW

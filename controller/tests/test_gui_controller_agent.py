@@ -89,6 +89,30 @@ class TestGuiControllerAgentHelpers(unittest.TestCase):
             "Original command copied to clipboard: Survey Alpha",
         )
 
+    def test_fetch_session_screenshot_forwards_show_label_option(self):
+        UAVControllerGUI = self._import_gui_controller()
+        controller = object.__new__(UAVControllerGUI)
+        controller.api_server = Mock()
+        controller.api_server.api_get_session_screenshot.return_value = b"image"
+
+        response = controller.fetch_session_screenshot(
+            fmt="svg",
+            width=640,
+            height=480,
+            show_status=True,
+            show_label=False,
+        )
+
+        self.assertEqual(response, b"image")
+        controller.api_server.api_get_session_screenshot.assert_called_once_with(
+            fmt="svg",
+            width=640,
+            height=480,
+            show_status=True,
+            show_label=False,
+            show_error=True,
+        )
+
     def test_refresh_request_history_replaces_entries(self):
         UAVControllerGUI = self._import_gui_controller()
         controller = object.__new__(UAVControllerGUI)

@@ -23,17 +23,9 @@ export type ShortcutAction =
   | 'roam_speed_down'
   | 'reset_view';
 
-export type ShortcutOptions = {
-  editMode?: boolean;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-  shiftKey?: boolean;
-};
-
 const trailModes = [10, 20, 1, 0, -1] as const;
 
 export const DEFAULT_LABELS_VISIBLE = false;
-export const DISPLAY_ONLY_MODE = true;
 
 export function formatStatusSummary(state: ViewerState | null, locale: Locale = 'zh-CN'): string {
   if (!state) return '';
@@ -80,8 +72,7 @@ export function getTrailModeLabel(index: number, locale: Locale = 'zh-CN'): stri
   return `${prefix}: ${value}`;
 }
 
-export function getShortcutAction(key: string, options: ShortcutOptions = {}): ShortcutAction | null {
-  void options;
+export function getShortcutAction(key: string): ShortcutAction | null {
   if (key === 'Escape') return 'clear_selection';
   if (key === 'ArrowUp') return 'pan_up';
   if (key === 'ArrowDown') return 'pan_down';

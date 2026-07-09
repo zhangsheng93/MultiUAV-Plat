@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   DEFAULT_LABELS_VISIBLE,
-  DISPLAY_ONLY_MODE,
   formatClickPosition,
   formatStatusSummary,
   getShortcutAction,
@@ -48,7 +47,6 @@ function makeState(overrides: Partial<ViewerState> = {}): ViewerState {
 
 test('scene labels are hidden by default to keep the 3D view uncluttered', () => {
   assert.equal(DEFAULT_LABELS_VISIBLE, false);
-  assert.equal(DISPLAY_ONLY_MODE, true);
 });
 
 test('status summary reports task progress without duplicate counts', () => {
@@ -128,15 +126,4 @@ test('keyboard shortcuts cover first phase 2D parity actions', () => {
   assert.equal(getShortcutAction('.'), 'roam_speed_up');
   assert.equal(getShortcutAction(','), 'roam_speed_down');
   assert.equal(getShortcutAction('x'), null);
-});
-
-test('display-only mode disables editor operation shortcuts', () => {
-  assert.equal(getShortcutAction('Delete', { editMode: true }), null);
-  assert.equal(getShortcutAction('e', { editMode: true }), null);
-  assert.equal(getShortcutAction('d', { editMode: true }), null);
-  assert.equal(getShortcutAction('g', { editMode: true }), null);
-  assert.equal(getShortcutAction('Tab', { editMode: true }), null);
-  assert.equal(getShortcutAction('s', { editMode: true, ctrlKey: true }), null);
-  assert.equal(getShortcutAction('S', { editMode: true, ctrlKey: true, shiftKey: true }), null);
-  assert.equal(getShortcutAction('m', { editMode: true }), 'toggle_minimap');
 });

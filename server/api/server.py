@@ -3625,6 +3625,7 @@ async def get_current_session_screenshot(
     center_y: Optional[float] = None,
     scale_px_per_meter: Optional[float] = None,
     show_status: bool = False,
+    show_label: bool = True,
     _role: UserRole = Depends(require_agent)
 ):
     """
@@ -3651,6 +3652,7 @@ async def get_current_session_screenshot(
       * Area coverage heatmaps
       * Reached target markers
       * Status bar with session statistics
+    - show_label: Boolean flag to include object labels for drones, targets, and obstacles (default: true)
 
     **Response Format:**
     - Binary image/file data with appropriate Content-Type header
@@ -3675,6 +3677,7 @@ async def get_current_session_screenshot(
         center_y=center_y,
         scale_px_per_meter=scale_px_per_meter,
         show_status=show_status,
+        show_label=show_label,
     )
     if img_bytes is None or len(img_bytes) == 0:
         raise HTTPException(status_code=404, detail="No current session found or screenshot generation failed")
@@ -3698,6 +3701,7 @@ async def get_session_screenshot(
     center_y: Optional[float] = None,
     scale_px_per_meter: Optional[float] = None,
     show_status: bool = False,
+    show_label: bool = True,
     _role: UserRole = Depends(require_system)
 ):
     """
@@ -3725,6 +3729,7 @@ async def get_session_screenshot(
       * Area coverage heatmaps
       * Reached target markers
       * Status bar with session statistics
+    - show_label: Boolean flag to include object labels for drones, targets, and obstacles (default: true)
 
     **Response Format:**
     - Binary image/file data with appropriate Content-Type header
@@ -3753,6 +3758,7 @@ async def get_session_screenshot(
         center_y=center_y,
         scale_px_per_meter=scale_px_per_meter,
         show_status=show_status,
+        show_label=show_label,
     )
     if img_bytes is None or len(img_bytes) == 0:
         raise HTTPException(status_code=404, detail="Screenshot generation failed")

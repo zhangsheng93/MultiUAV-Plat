@@ -6,12 +6,16 @@ All notable changes to this project should be documented in this file.
 
 ### Added
 - Added an About button to the UI toolbar with version, copyright, license, clickable paper/project/website links, and click-outside dismissal.
+- Added a `show_label` screenshot option to hide drone, target, and obstacle labels while preserving other screenshot content.
+- Added optional `MULTIUAV_3D_VIEW_SYSTEM_KEY` support for a dedicated 3D View SYSTEM client key without storing that key in release source.
 - Added UI details-panel vertex coordinate rows for selected polygon targets and obstacles; polygon target details now omit radius and label vertices with the target name.
 - Added yellow mini-map selection highlighting for selected drones, targets, and obstacles.
 
 ### Changed
 - Limited runtime request-history retention to the current session; non-current sessions discard request history by default, and switching the current session clears request history from other sessions.
 - Changed request-history `limit` query defaults so omitted `limit` returns all retained records, while explicit `limit` values return that many recent records.
+- Changed `python main.py --ui-drone-control` to start the UI directly without showing the startup UI prompt.
+- Listed `httpx` in requirements so FastAPI `TestClient`-based tests run in fresh environments.
 - Excluded `GET /sessions/current/data` from runtime request-history recording.
 - Stopped storing full response bodies in structured API logs; logs now record response size, type, and an omission summary, and large response paths skip body capture.
 

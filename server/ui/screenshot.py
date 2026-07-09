@@ -358,6 +358,7 @@ def _build_scene(
     center_y: Optional[float],
     scale_px_per_meter: Optional[float],
     show_status: bool,
+    show_label: bool,
 ) -> tuple[SceneBuilder, dict[str, Any]]:
     header_height = 28
     base_width = 1024
@@ -514,7 +515,7 @@ def _build_scene(
             label_x = sx + size / 2 + label_offset_x
             label_y = sy - label_offset_y
 
-        if name:
+        if show_label and name:
             label_lines = [
                 str(name),
                 f"Type: {format_enum_value(str(obstacle_type))}",
@@ -577,39 +578,40 @@ def _build_scene(
                 cx, cy = world_to_screen(px, py)
                 scene.rect(cx - grid_size / 2, cy - grid_size / 2, grid_size, grid_size, fill=STATUS_OK)
 
-        target_label_lines = [
-            str(name),
-            f"Type: {format_enum_value(str(target_type))}",
-        ]
-        if target_id:
-            target_label_lines.append(f"ID: {target_id}")
+        if show_label:
+            target_label_lines = [
+                str(name),
+                f"Type: {format_enum_value(str(target_type))}",
+            ]
+            if target_id:
+                target_label_lines.append(f"ID: {target_id}")
 
-        if target_type == "polygon" and vertices:
-            pts = [world_to_screen(vertex["x"], vertex["y"]) for vertex in vertices]
-            if pts:
+            if target_type == "polygon" and vertices:
+                pts = [world_to_screen(vertex["x"], vertex["y"]) for vertex in vertices]
+                if pts:
+                    render_label_lines(
+                        scene,
+                        target_label_lines,
+                        max(point[0] for point in pts) + label_offset_x,
+                        min(point[1] for point in pts) - line_step,
+                        max_text_width,
+                    )
+            elif target_type == "circle":
                 render_label_lines(
                     scene,
                     target_label_lines,
-                    max(point[0] for point in pts) + label_offset_x,
-                    min(point[1] for point in pts) - line_step,
+                    sx + max(1, int(radius * map_scale)) + label_offset_x,
+                    sy - line_step,
                     max_text_width,
                 )
-        elif target_type == "circle":
-            render_label_lines(
-                scene,
-                target_label_lines,
-                sx + max(1, int(radius * map_scale)) + label_offset_x,
-                sy - line_step,
-                max_text_width,
-            )
-        else:
-            render_label_lines(
-                scene,
-                target_label_lines,
-                sx + label_offset_x * 2,
-                sy - line_step,
-                max_text_width,
-            )
+            else:
+                render_label_lines(
+                    scene,
+                    target_label_lines,
+                    sx + label_offset_x * 2,
+                    sy - line_step,
+                    max_text_width,
+                )
 
     for drone in drones:
         pos = _get_position(drone)
@@ -635,16 +637,17 @@ def _build_scene(
         ind_y = sy - int(icon_radius * 1.5 * math.cos(heading_rad))
         scene.line(sx, sy, ind_x, ind_y, WHITE, max(1, int(2 * scale_factor)))
 
-        name = _get_attr(drone, "name") or "Drone"
-        render_text_safe(
-            scene,
-            str(name),
-            sx + icon_radius + ring_offset + label_offset_x,
-            sy - label_offset_y,
-            font_size_label,
-            TEXT_COLOR,
-            max_width=int(120 * scale_factor),
-        )
+        if show_label:
+            name = _get_attr(drone, "name") or "Drone"
+            render_text_safe(
+                scene,
+                str(name),
+                sx + icon_radius + ring_offset + label_offset_x,
+                sy - label_offset_y,
+                font_size_label,
+                TEXT_COLOR,
+                max_width=int(120 * scale_factor),
+            )
 
     summary = f"Drones: {len(drones)} | Targets: {len(targets)} | Obstacles: {len(obstacles)}"
     footer_baseline_y = height - status_bar_height - footer_padding
@@ -1026,6 +1029,7 @@ def generate_session_screenshot(
     center_y: Optional[float] = None,
     scale_px_per_meter: Optional[float] = None,
     show_status: bool = False,
+    show_label: bool = True,
 ) -> Optional[bytes]:
     """Render a static image of the current session UI to PNG/JPG/PDF/SVG/EPS bytes."""
     if session is None:
@@ -1046,6 +1050,7 @@ def generate_session_screenshot(
         center_y=center_y,
         scale_px_per_meter=scale_px_per_meter,
         show_status=show_status,
+        show_label=show_label,
     )
 
     fmt_lower = fmt.lower()

@@ -1,18 +1,12 @@
-import type { CameraMode, CommandResult, DroneState, ObstacleState, Position, SelectionRef, TargetState, ViewerState } from './types';
-import { getCommandAvailability } from './uiState';
+import type { CameraMode, DroneState, ObstacleState, Position, SelectionRef, TargetState, ViewerState } from './types';
 import { formatClickPosition, formatStatusSummary, getTrailModeLabel } from './viewerRuntime';
-import { getMiniMapObstacleShape, getMiniMapTargetShape, miniMapToWorld, resolveMiniMapBounds, worldToMiniMap, type MiniMapObjectShape } from './miniMap';
+import { getMiniMapObstacleColor, getMiniMapObstacleShape, getMiniMapTargetShape, miniMapToWorld, resolveMiniMapBackingSize, resolveMiniMapBounds, worldToMiniMap, type MiniMapObjectShape, type MiniMapSize } from './miniMap';
 import { getTargetVisualState, summarizeCoverage } from './taskVisuals';
-import type { RelativeMoveAction } from './movementControls';
-import { formatMovingPathText, formatVerticesText, parseMovingPathText, parseVerticesText, type EntityPatch } from './editorState';
 import type { Locale } from './i18n.ts';
 import { t, translateDataValue } from './i18n.ts';
 import type { VisualScaleSettings } from './renderSettings.ts';
-import type { CoverageDisplayMode } from './scene.ts';
 import { getTargetBaseColor } from './targetVisuals.ts';
 
-type CommandHandler = (command: string) => void;
-type PerceivedRadiusHandler = (radius: number) => void;
 type CameraHandler = (mode: CameraMode) => void;
 type TrailHandler = (length: number) => void;
 type VisualScaleHandler = (settings: VisualScaleSettings) => void;
@@ -21,26 +15,11 @@ type ToggleHandler = () => void;
 type ScreenshotHandler = (format: string) => void;
 type NavigationHandler = (action: 'pan_up' | 'pan_down' | 'pan_left' | 'pan_right' | 'reset_view' | 'zoom_scale', value?: number) => void;
 type MiniMapClickHandler = (position: Position) => void;
-type RelativeMoveHandler = (action: RelativeMoveAction) => void;
-type CoverageDisplayHandler = (mode: CoverageDisplayMode) => void;
-export type EditorAction =
-  | { type: 'toggle' }
-  | { type: 'add'; kind: SelectionRef['kind'] }
-  | { type: 'move_selected' }
-  | { type: 'cycle_selection' }
-  | { type: 'toggle_snap_grid' }
-  | { type: 'duplicate' }
-  | { type: 'delete' }
-  | { type: 'save' }
-  | { type: 'save_as' }
-  | { type: 'discard' }
-  | { type: 'patch'; patch: EntityPatch };
-type EditorHandler = (action: EditorAction) => void;
+type DisplayResult = {
+  ok: boolean;
+  message: string;
+};
 
-const droneStatuses = ['idle', 'ready', 'taking_off', 'flying', 'moving', 'hovering', 'landing', 'emergency', 'offline'];
-const targetTypes = ['fixed', 'moving', 'waypoint', 'circle', 'polygon'];
-const obstacleTypes = ['point', 'circle', 'ellipse', 'polygon'];
-const movementModes = ['velocity', 'path', 'stationary'];
 const MINI_MAP_DRONE_COLOR = '#22c55e';
 const MINI_MAP_SELECTED_DRONE_COLOR = '#ef4444';
 
@@ -50,9 +29,6 @@ export class ViewerUI {
   readonly connectionStatus = document.querySelector<HTMLSpanElement>('#connectionStatus')!;
   readonly selectionTitle = document.querySelector<HTMLHeadingElement>('#selectionTitle')!;
   readonly selectionDetails = document.querySelector<HTMLDivElement>('#selectionDetails')!;
-  readonly commandStatus = document.querySelector<HTMLParagraphElement>('#commandStatus')!;
-  readonly altitudeInput = document.querySelector<HTMLInputElement>('#altitudeInput')!;
-  readonly perceivedRadiusInput = document.querySelector<HTMLInputElement>('#perceivedRadiusInput')!;
   readonly trailLength = document.querySelector<HTMLInputElement>('#trailLength')!;
   readonly trailLengthLabel = document.querySelector<HTMLSpanElement>('#trailLengthLabel')!;
   private readonly droneScale = document.querySelector<HTMLInputElement>('#droneScale')!;
@@ -74,8 +50,6 @@ export class ViewerUI {
   private readonly zoomScaleStatus = document.querySelector<HTMLSpanElement>('#zoomScaleStatus')!;
   readonly miniMapPanel = document.querySelector<HTMLDivElement>('#miniMapPanel')!;
   readonly miniMapCanvas = document.querySelector<HTMLCanvasElement>('#miniMapCanvas')!;
-  readonly moveStepInput = document.querySelector<HTMLInputElement>('#moveStepInput')!;
-  readonly altitudeStepInput = document.querySelector<HTMLInputElement>('#altitudeStepInput')!;
   private readonly languageToggle = document.querySelector<HTMLButtonElement>('#languageToggle')!;
   private readonly cameraTop = document.querySelector<HTMLButtonElement>('#cameraTop')!;
   private readonly cameraFollow = document.querySelector<HTMLButtonElement>('#cameraFollow')!;
@@ -85,14 +59,6 @@ export class ViewerUI {
   private readonly infoToggle = document.querySelector<HTMLButtonElement>('#infoToggle')!;
   private readonly screenshotFormat = document.querySelector<HTMLSelectElement>('#screenshotFormat')!;
   private readonly screenshotButton = document.querySelector<HTMLButtonElement>('#screenshotButton')!;
-  private readonly displayCoverageMode = document.querySelector<HTMLSelectElement>('#displayCoverageMode')!;
-  private readonly basicControlTitle = document.querySelector<HTMLHeadingElement>('#basicControlTitle')!;
-  private readonly altitudeLabel = document.querySelector<HTMLSpanElement>('#altitudeLabel')!;
-  private readonly perceivedRadiusLabel = document.querySelector<HTMLSpanElement>('#perceivedRadiusLabel')!;
-  private readonly movementTitle = document.querySelector<HTMLHeadingElement>('#movementTitle')!;
-  private readonly moveStepLabel = document.querySelector<HTMLSpanElement>('#moveStepLabel')!;
-  private readonly altitudeStepLabel = document.querySelector<HTMLSpanElement>('#altitudeStepLabel')!;
-  private readonly editorTitle = document.querySelector<HTMLHeadingElement>('#editorTitle')!;
   private readonly trailLengthText = document.querySelector<HTMLSpanElement>('#trailLengthText')!;
   private readonly droneScaleText = document.querySelector<HTMLSpanElement>('#droneScaleText')!;
   private readonly targetScaleText = document.querySelector<HTMLSpanElement>('#targetScaleText')!;
@@ -100,93 +66,18 @@ export class ViewerUI {
   private readonly labelScaleText = document.querySelector<HTMLSpanElement>('#labelScaleText')!;
   private readonly activityStatus = document.querySelector<HTMLSpanElement>('#activityStatus')!;
   private readonly liveToggle = document.querySelector<HTMLButtonElement>('#liveToggle')!;
-  private readonly cmdTakeoff = document.querySelector<HTMLButtonElement>('#cmdTakeoff')!;
-  private readonly cmdLand = document.querySelector<HTMLButtonElement>('#cmdLand')!;
-  private readonly cmdHover = document.querySelector<HTMLButtonElement>('#cmdHover')!;
-  private readonly cmdReturnHome = document.querySelector<HTMLButtonElement>('#cmdReturnHome')!;
-  private readonly cmdCharge = document.querySelector<HTMLButtonElement>('#cmdCharge')!;
-  private readonly cmdEmergency = document.querySelector<HTMLButtonElement>('#cmdEmergency')!;
-  private readonly cmdUpdatePerceivedRadius = document.querySelector<HTMLButtonElement>('#cmdUpdatePerceivedRadius')!;
-  private readonly cmdMoveMode = document.querySelector<HTMLButtonElement>('#cmdMoveMode')!;
-  private readonly relForward = document.querySelector<HTMLButtonElement>('#relForward')!;
-  private readonly relBackward = document.querySelector<HTMLButtonElement>('#relBackward')!;
-  private readonly relLeft = document.querySelector<HTMLButtonElement>('#relLeft')!;
-  private readonly relRight = document.querySelector<HTMLButtonElement>('#relRight')!;
-  private readonly relUp = document.querySelector<HTMLButtonElement>('#relUp')!;
-  private readonly relDown = document.querySelector<HTMLButtonElement>('#relDown')!;
-  private readonly editModeToggle = document.querySelector<HTMLButtonElement>('#editModeToggle')!;
-  private readonly addDrone = document.querySelector<HTMLButtonElement>('#addDrone')!;
-  private readonly addTarget = document.querySelector<HTMLButtonElement>('#addTarget')!;
-  private readonly addObstacle = document.querySelector<HTMLButtonElement>('#addObstacle')!;
-  private readonly editMoveSelected = document.querySelector<HTMLButtonElement>('#editMoveSelected')!;
-  private readonly cycleSelection = document.querySelector<HTMLButtonElement>('#cycleSelection')!;
-  private readonly snapToGridToggle = document.querySelector<HTMLButtonElement>('#snapToGridToggle')!;
-  private readonly duplicateSelected = document.querySelector<HTMLButtonElement>('#duplicateSelected')!;
-  private readonly deleteSelected = document.querySelector<HTMLButtonElement>('#deleteSelected')!;
-  private readonly saveSceneEdits = document.querySelector<HTMLButtonElement>('#saveSceneEdits')!;
-  private readonly saveSceneAs = document.querySelector<HTMLButtonElement>('#saveSceneAs')!;
-  private readonly discardSceneEdits = document.querySelector<HTMLButtonElement>('#discardSceneEdits')!;
-  private readonly editorStatus = document.querySelector<HTMLParagraphElement>('#editorStatus')!;
-  private readonly editForm = document.querySelector<HTMLDivElement>('#editForm')!;
-  private readonly editName = document.querySelector<HTMLInputElement>('#editName')!;
-  private readonly editModel = document.querySelector<HTMLInputElement>('#editModel')!;
-  private readonly editType = document.querySelector<HTMLSelectElement>('#editType')!;
-  private readonly editStatus = document.querySelector<HTMLSelectElement>('#editStatus')!;
-  private readonly editMovementMode = document.querySelector<HTMLSelectElement>('#editMovementMode')!;
-  private readonly editX = document.querySelector<HTMLInputElement>('#editX')!;
-  private readonly editY = document.querySelector<HTMLInputElement>('#editY')!;
-  private readonly editZ = document.querySelector<HTMLInputElement>('#editZ')!;
-  private readonly editRadius = document.querySelector<HTMLInputElement>('#editRadius')!;
-  private readonly editHeading = document.querySelector<HTMLInputElement>('#editHeading')!;
-  private readonly editBattery = document.querySelector<HTMLInputElement>('#editBattery')!;
-  private readonly editMaxSpeed = document.querySelector<HTMLInputElement>('#editMaxSpeed')!;
-  private readonly editMaxAltitude = document.querySelector<HTMLInputElement>('#editMaxAltitude')!;
-  private readonly editBatteryCapacity = document.querySelector<HTMLInputElement>('#editBatteryCapacity')!;
-  private readonly editPerceivedRadius = document.querySelector<HTMLInputElement>('#editPerceivedRadius')!;
-  private readonly editTaskRadius = document.querySelector<HTMLInputElement>('#editTaskRadius')!;
-  private readonly editWidth = document.querySelector<HTMLInputElement>('#editWidth')!;
-  private readonly editLength = document.querySelector<HTMLInputElement>('#editLength')!;
-  private readonly editMovingDuration = document.querySelector<HTMLInputElement>('#editMovingDuration')!;
-  private readonly editChargeAmount = document.querySelector<HTMLInputElement>('#editChargeAmount')!;
-  private readonly editVelocityX = document.querySelector<HTMLInputElement>('#editVelocityX')!;
-  private readonly editVelocityY = document.querySelector<HTMLInputElement>('#editVelocityY')!;
-  private readonly editVelocityZ = document.querySelector<HTMLInputElement>('#editVelocityZ')!;
-  private readonly editMovingPath = document.querySelector<HTMLTextAreaElement>('#editMovingPath')!;
-  private readonly editVertices = document.querySelector<HTMLTextAreaElement>('#editVertices')!;
-  private readonly editHeight = document.querySelector<HTMLInputElement>('#editHeight')!;
-  private readonly editDescription = document.querySelector<HTMLTextAreaElement>('#editDescription')!;
   private state: ViewerState | null = null;
   private selection: SelectionRef | null = null;
   private miniMapVisible = true;
-  private editMode = false;
-  private editDirty = false;
-  private editMoveMode = false;
-  private snapToGrid = false;
   private locale: Locale = 'zh-CN';
   private live = true;
   private lastClickPosition: Position | null = null;
   private lastZoomScale = 1;
   private lastActivityStatus = '';
-  private lastPerceivedRadiusDroneId: string | null = null;
 
   constructor(locale: Locale = 'zh-CN') {
     this.locale = locale;
-    this.populateSelects();
     this.applyLocale();
-  }
-
-  bindCommands(handler: CommandHandler): void {
-    this.cmdTakeoff.addEventListener('click', () => handler('takeoff'));
-    this.cmdLand.addEventListener('click', () => handler('land'));
-    this.cmdHover.addEventListener('click', () => handler('hover'));
-    this.cmdReturnHome.addEventListener('click', () => handler('return_home'));
-    this.cmdCharge.addEventListener('click', () => handler('charge'));
-    this.cmdEmergency.addEventListener('click', () => handler('emergency'));
-    this.cmdMoveMode.addEventListener('click', () => handler('move_mode'));
-  }
-
-  bindPerceivedRadius(handler: PerceivedRadiusHandler): void {
-    this.cmdUpdatePerceivedRadius.addEventListener('click', () => handler(this.getPerceivedRadius()));
   }
 
   bindCamera(handler: CameraHandler): void {
@@ -202,10 +93,6 @@ export class ViewerUI {
 
   bindScreenshot(handler: ScreenshotHandler): void {
     this.screenshotButton.addEventListener('click', () => handler(this.screenshotFormat.value));
-  }
-
-  bindDisplayLayers(onCoverageMode: CoverageDisplayHandler): void {
-    this.displayCoverageMode.addEventListener('change', () => onCoverageMode(this.displayCoverageMode.value as CoverageDisplayMode));
   }
 
   bindTrail(handler: TrailHandler): void {
@@ -260,79 +147,11 @@ export class ViewerUI {
     this.miniMapCanvas.addEventListener('click', (event) => {
       if (!this.state) return;
       const rect = this.miniMapCanvas.getBoundingClientRect();
-      const scaleX = this.miniMapCanvas.width / rect.width;
-      const scaleY = this.miniMapCanvas.height / rect.height;
       const point = {
-        x: (event.clientX - rect.left) * scaleX,
-        y: (event.clientY - rect.top) * scaleY
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
       };
       handler(miniMapToWorld(point, resolveMiniMapBounds(this.state), this.getMiniMapSize()));
-    });
-  }
-
-  bindRelativeMove(handler: RelativeMoveHandler): void {
-    this.relForward.addEventListener('click', () => handler('forward'));
-    this.relBackward.addEventListener('click', () => handler('backward'));
-    this.relLeft.addEventListener('click', () => handler('left'));
-    this.relRight.addEventListener('click', () => handler('right'));
-    this.relUp.addEventListener('click', () => handler('up'));
-    this.relDown.addEventListener('click', () => handler('down'));
-  }
-
-  bindEditor(handler: EditorHandler): void {
-    this.editModeToggle.addEventListener('click', () => handler({ type: 'toggle' }));
-    this.addDrone.addEventListener('click', () => handler({ type: 'add', kind: 'drone' }));
-    this.addTarget.addEventListener('click', () => handler({ type: 'add', kind: 'target' }));
-    this.addObstacle.addEventListener('click', () => handler({ type: 'add', kind: 'obstacle' }));
-    this.editMoveSelected.addEventListener('click', () => handler({ type: 'move_selected' }));
-    this.cycleSelection.addEventListener('click', () => handler({ type: 'cycle_selection' }));
-    this.snapToGridToggle.addEventListener('click', () => handler({ type: 'toggle_snap_grid' }));
-    this.duplicateSelected.addEventListener('click', () => handler({ type: 'duplicate' }));
-    this.deleteSelected.addEventListener('click', () => handler({ type: 'delete' }));
-    this.saveSceneEdits.addEventListener('click', () => handler({ type: 'save' }));
-    this.saveSceneAs.addEventListener('click', () => handler({ type: 'save_as' }));
-    this.discardSceneEdits.addEventListener('click', () => handler({ type: 'discard' }));
-    this.editName.addEventListener('input', () => handler({ type: 'patch', patch: { name: this.editName.value } }));
-    this.editModel.addEventListener('input', () => handler({ type: 'patch', patch: { model: this.editModel.value } }));
-    this.editType.addEventListener('change', () => handler({ type: 'patch', patch: { type: this.editType.value } }));
-    this.editStatus.addEventListener('change', () => handler({ type: 'patch', patch: { status: this.editStatus.value } }));
-    this.editMovementMode.addEventListener('change', () => handler({ type: 'patch', patch: { movement_mode: this.editMovementMode.value } }));
-    this.editDescription.addEventListener('input', () => handler({ type: 'patch', patch: { description: this.editDescription.value } }));
-    this.bindNumericEditorInput(this.editX, (value) => ({ position: { x: value } }), handler);
-    this.bindNumericEditorInput(this.editY, (value) => ({ position: { y: value } }), handler);
-    this.bindNumericEditorInput(this.editZ, (value) => ({ position: { z: value } }), handler);
-    this.bindNumericEditorInput(this.editRadius, (value) => ({ radius: value }), handler);
-    this.bindNumericEditorInput(this.editHeading, (value) => ({ heading: value }), handler);
-    this.bindNumericEditorInput(this.editBattery, (value) => ({ battery_level: value }), handler);
-    this.bindNumericEditorInput(this.editMaxSpeed, (value) => ({ max_speed: value }), handler);
-    this.bindNumericEditorInput(this.editMaxAltitude, (value) => ({ max_altitude: value }), handler);
-    this.bindNumericEditorInput(this.editBatteryCapacity, (value) => ({ battery_capacity: value }), handler);
-    this.bindNumericEditorInput(this.editPerceivedRadius, (value) => ({ perceived_radius: value }), handler);
-    this.bindNumericEditorInput(this.editTaskRadius, (value) => ({ task_radius: value }), handler);
-    this.bindNumericEditorInput(this.editWidth, (value) => ({ width: value }), handler);
-    this.bindNumericEditorInput(this.editLength, (value) => ({ length: value }), handler);
-    this.bindNumericEditorInput(this.editMovingDuration, (value) => ({ moving_duration: value }), handler);
-    this.bindNumericEditorInput(this.editChargeAmount, (value) => ({ charge_amount: value }), handler);
-    this.bindNumericEditorInput(this.editVelocityX, (value) => ({ velocity: { x: value } }), handler);
-    this.bindNumericEditorInput(this.editVelocityY, (value) => ({ velocity: { y: value } }), handler);
-    this.bindNumericEditorInput(this.editVelocityZ, (value) => ({ velocity: { z: value } }), handler);
-    this.bindNumericEditorInput(this.editHeight, (value) => ({ height: value }), handler);
-    this.editVertices.addEventListener('input', () => {
-      try {
-        handler({ type: 'patch', patch: { vertices: parseVerticesText(this.editVertices.value) } });
-      } catch (error) {
-        this.setEditorStatus(error instanceof Error ? error.message : String(error), false);
-      }
-    });
-    this.editMovingPath.addEventListener('input', () => {
-      try {
-        handler({
-          type: 'patch',
-          patch: { moving_path: parseMovingPathText(this.editMovingPath.value, Number(this.editZ.value) || 0) }
-        });
-      } catch (error) {
-        this.setEditorStatus(error instanceof Error ? error.message : String(error), false);
-      }
     });
   }
 
@@ -360,7 +179,6 @@ export class ViewerUI {
     this.connectionStatus.className = 'status disconnected';
     this.sessionName.textContent = translateDataValue(this.locale, message);
     this.statusSummary.textContent = formatStatusSummary(this.state, this.locale);
-    this.setCommandStatus(t(this.locale, 'control.backendDisconnected'), false);
   }
 
   updateSelection(selection: SelectionRef | null): void {
@@ -368,8 +186,6 @@ export class ViewerUI {
     if (!selection || !this.state) {
       this.selectionTitle.textContent = t(this.locale, 'selection.none.title');
       this.selectionDetails.textContent = t(this.locale, 'selection.none.detail');
-      this.updateCommandAvailability(null);
-      this.renderEditorForm();
       return;
     }
     if (selection.kind === 'drone') {
@@ -378,34 +194,10 @@ export class ViewerUI {
     } else if (selection.kind === 'target') {
       const target = this.state.targets.find((item) => item.id === selection.id);
       if (target) this.renderTarget(target);
-      this.updateCommandAvailability(null);
     } else {
       const obstacle = this.state.obstacles.find((item) => item.id === selection.id);
       if (obstacle) this.renderObstacle(obstacle);
-      this.updateCommandAvailability(null);
     }
-    this.renderEditorForm();
-  }
-
-  getSelectedDrone(): DroneState | null {
-    if (!this.state || !this.selection || this.selection.kind !== 'drone') return null;
-    return this.state.drones.find((drone) => drone.id === this.selection?.id) || null;
-  }
-
-  getAltitude(): number {
-    return Number(this.altitudeInput.value) || 10;
-  }
-
-  getPerceivedRadius(): number {
-    return Number(this.perceivedRadiusInput.value);
-  }
-
-  getMoveStep(): number {
-    return Number(this.moveStepInput.value) || 20;
-  }
-
-  getAltitudeStep(): number {
-    return Number(this.altitudeStepInput.value) || 5;
   }
 
   getVisualScaleSettings(): VisualScaleSettings {
@@ -415,11 +207,6 @@ export class ViewerUI {
       obstacle: Number(this.obstacleScale.value) / 100,
       label: Number(this.labelScale.value) / 100
     };
-  }
-
-  setMoveMode(active: boolean): void {
-    this.cmdMoveMode.classList.toggle('active', active);
-    this.setCommandStatus(active ? t(this.locale, 'control.moveModeOn') : t(this.locale, 'control.moveModeOff'), true);
   }
 
   setTrailMode(index: number): void {
@@ -469,7 +256,7 @@ export class ViewerUI {
     this.miniMapPanel.classList.toggle('hidden', !visible);
   }
 
-  updateClickPosition(position: { x: number; y: number; z: number } | null): void {
+  updateClickPosition(position: Position | null): void {
     this.lastClickPosition = position;
     this.clickPosition.textContent = formatClickPosition(position, this.locale);
   }
@@ -520,7 +307,7 @@ export class ViewerUI {
     const ctx = this.miniMapCanvas.getContext('2d');
     if (!ctx) return;
 
-    const size = this.getMiniMapSize();
+    const size = this.prepareMiniMapCanvas(ctx);
     const bounds = resolveMiniMapBounds(this.state);
     ctx.clearRect(0, 0, size.width, size.height);
     ctx.fillStyle = '#f8fafc';
@@ -536,7 +323,7 @@ export class ViewerUI {
 
     for (const obstacle of this.state.obstacles) {
       const selected = this.selection?.kind === 'obstacle' && this.selection.id === obstacle.id;
-      this.drawMiniMapObject(ctx, obstacle.position, getMiniMapObstacleShape(obstacle), bounds, size, '#64748b', selected);
+      this.drawMiniMapObject(ctx, obstacle.position, getMiniMapObstacleShape(obstacle), bounds, size, this.formatHexColor(getMiniMapObstacleColor(obstacle)), selected);
     }
     for (const target of this.state.targets) {
       const selected = this.selection?.kind === 'target' && this.selection.id === target.id;
@@ -564,140 +351,79 @@ export class ViewerUI {
     }
   }
 
-  setCommandResult(result: CommandResult): void {
-    this.setCommandStatus(translateDataValue(this.locale, result.message), result.ok);
-  }
-
-  setDisplayStatus(result: CommandResult): void {
-    this.setCommandStatus(translateDataValue(this.locale, result.message), result.ok);
-  }
-
-  setCommandStatus(message: string, ok: boolean): void {
-    this.commandStatus.textContent = message;
-    this.commandStatus.className = `command-status ${ok ? 'ok' : 'error'}`;
-  }
-
-  setEditorState(active: boolean, dirty: boolean, moveMode: boolean): void {
-    this.editMode = active;
-    this.editDirty = dirty;
-    this.editMoveMode = moveMode;
-    this.editModeToggle.textContent = active ? t(this.locale, 'editor.toggleOff') : t(this.locale, 'editor.toggleOn');
-    this.editModeToggle.classList.toggle('active', active);
-    this.editMoveSelected.classList.toggle('active', moveMode);
-    this.renderEditorForm();
-  }
-
-  setSnapToGrid(active: boolean): void {
-    this.snapToGrid = active;
-    this.snapToGridToggle.classList.toggle('active', active);
-    this.snapToGridToggle.textContent = active ? `${t(this.locale, 'editor.snapGrid')} ✓` : t(this.locale, 'editor.snapGrid');
-  }
-
-  setEditorStatus(message: string, ok: boolean): void {
-    this.editorStatus.textContent = translateDataValue(this.locale, message);
-    this.editorStatus.className = `command-status ${ok ? 'ok' : 'error'}`;
+  setDisplayStatus(result: DisplayResult): void {
+    this.setActivityText(translateDataValue(this.locale, result.message));
   }
 
   setDisplayMode(): void {
-    this.updateCommandAvailability(null);
-    this.setEditorState(false, false, false);
-    this.commandStatus.textContent = t(this.locale, 'selection.none.detail');
-    this.commandStatus.className = 'command-status';
     this.setActivityText(this.lastActivityStatus);
   }
 
   private renderDrone(drone: DroneState): void {
-    this.updateCommandAvailability(drone);
-    if (document.activeElement !== this.perceivedRadiusInput || this.lastPerceivedRadiusDroneId !== drone.id) {
-      this.perceivedRadiusInput.value = this.formatInputNumber(drone.perceived_radius);
-    }
-    this.lastPerceivedRadiusDroneId = drone.id;
     this.selectionTitle.textContent = `${t(this.locale, 'entity.drone')} · ${drone.name}`;
     this.selectionDetails.innerHTML = `
       <dl>
         <dt>${t(this.locale, 'field.id')}</dt><dd>${drone.id}</dd>
-        <dt>${t(this.locale, 'field.name')}</dt><dd>${drone.name}</dd>
+        <dt>${t(this.locale, 'field.name')}</dt><dd>${translateDataValue(this.locale, drone.name)}</dd>
         <dt>${t(this.locale, 'field.status')}</dt><dd>${translateDataValue(this.locale, drone.status)}</dd>
-        <dt>${t(this.locale, 'field.position')}</dt><dd>${this.formatPosition(drone.position)}</dd>
-        <dt>${t(this.locale, 'field.heading')}</dt><dd>${Math.round(drone.heading || 0)}°</dd>
-        <dt>${t(this.locale, 'field.speed')}</dt><dd>${drone.speed ?? 0} m/s</dd>
-        <dt>${t(this.locale, 'field.battery')}</dt><dd>${Math.round(drone.battery_level ?? 0)}%</dd>
         <dt>${t(this.locale, 'field.model')}</dt><dd>${translateDataValue(this.locale, drone.model || '-')}</dd>
-        <dt>${t(this.locale, 'field.maxSpeed')}</dt><dd>${drone.max_speed ?? '-'} m/s</dd>
-        <dt>${t(this.locale, 'field.maxAltitude')}</dt><dd>${drone.max_altitude ?? '-'} m</dd>
-        <dt>${t(this.locale, 'field.perceivedRadius')}</dt><dd>${drone.perceived_radius ?? '-'} m</dd>
-        <dt>${t(this.locale, 'field.taskRadius')}</dt><dd>${drone.task_radius ?? '-'} m</dd>
+        <dt>${t(this.locale, 'field.position')}</dt><dd>${this.formatPosition(drone.position)}</dd>
+        <dt>${t(this.locale, 'field.heading')}</dt><dd>${this.formatMaybeNumber(drone.heading, '°')}</dd>
+        <dt>${t(this.locale, 'field.speed')}</dt><dd>${this.formatMaybeNumber(drone.speed)}</dd>
+        <dt>${t(this.locale, 'field.battery')}</dt><dd>${this.formatMaybeNumber(drone.battery_level, '%')}</dd>
+        <dt>${t(this.locale, 'field.maxSpeed')}</dt><dd>${this.formatMaybeNumber(drone.max_speed)}</dd>
+        <dt>${t(this.locale, 'field.maxAltitude')}</dt><dd>${this.formatMaybeNumber(drone.max_altitude)}</dd>
+        <dt>${t(this.locale, 'field.batteryCapacity')}</dt><dd>${this.formatMaybeNumber(drone.battery_capacity)}</dd>
+        <dt>${t(this.locale, 'field.perceivedRadius')}</dt><dd>${this.formatMaybeNumber(drone.perceived_radius)}</dd>
+        <dt>${t(this.locale, 'field.taskRadius')}</dt><dd>${this.formatMaybeNumber(drone.task_radius)}</dd>
         <dt>${t(this.locale, 'field.home')}</dt><dd>${drone.home_position ? this.formatPosition(drone.home_position) : '-'}</dd>
       </dl>
     `;
   }
 
-  private setActivityText(value: string): void {
-    this.lastActivityStatus = value;
-    this.activityStatus.textContent = value;
-    this.activityStatus.classList.toggle('hidden', value === '');
-  }
-
-  private resolveSelectionActivity(selection: SelectionRef): { kind: string; name: string; id: string } | null {
-    if (!this.state) return null;
-    if (selection.kind === 'drone') {
-      const drone = this.state.drones.find((item) => item.id === selection.id);
-      return drone ? { kind: t(this.locale, 'entity.drone'), name: drone.name, id: drone.id } : null;
-    }
-    if (selection.kind === 'target') {
-      const target = this.state.targets.find((item) => item.id === selection.id);
-      return target ? { kind: t(this.locale, 'entity.target'), name: target.name, id: target.id } : null;
-    }
-    const obstacle = this.state.obstacles.find((item) => item.id === selection.id);
-    return obstacle ? { kind: t(this.locale, 'entity.obstacle'), name: obstacle.name, id: obstacle.id } : null;
-  }
-
   private renderTarget(target: TargetState): void {
-    const visualState = this.state ? getTargetVisualState(target, this.state, this.locale) : null;
-    const coverage = this.state ? summarizeCoverage(this.state, target.id) : { points: 0, progressPercentage: null };
-    const geometryRows = [
-      target.type === 'polygon'
-        ? `<dt>${t(this.locale, 'field.polygonVertices')}</dt><dd class="detail-list">${this.formatVertices(target.vertices)}</dd>`
-        : `<dt>${t(this.locale, 'field.radius')}</dt><dd>${target.radius ?? '-'}</dd>`
-    ].join('');
+    const visual = this.state ? getTargetVisualState(target, this.state, this.locale) : null;
+    const coverage = this.state ? summarizeCoverage(this.state, target.id) : null;
     this.selectionTitle.textContent = `${t(this.locale, 'entity.target')} · ${target.name}`;
     this.selectionDetails.innerHTML = `
       <dl>
         <dt>${t(this.locale, 'field.id')}</dt><dd>${target.id}</dd>
-        <dt>${t(this.locale, 'field.name')}</dt><dd>${target.name}</dd>
+        <dt>${t(this.locale, 'field.name')}</dt><dd>${translateDataValue(this.locale, target.name)}</dd>
         <dt>${t(this.locale, 'field.type')}</dt><dd>${translateDataValue(this.locale, target.type)}</dd>
         <dt>${t(this.locale, 'field.position')}</dt><dd>${this.formatPosition(target.position)}</dd>
-        ${geometryRows}
-        <dt>${t(this.locale, 'field.area')}</dt><dd>${this.formatArea(target.area)}</dd>
-        <dt>${t(this.locale, 'field.completed')}</dt><dd>${target.is_reached ? t(this.locale, 'value.yes') : t(this.locale, 'value.no')}</dd>
-        <dt>${t(this.locale, 'field.description')}</dt><dd>${translateDataValue(this.locale, target.description || '-')}</dd>
+        <dt>${t(this.locale, 'field.radius')}</dt><dd>${this.formatMaybeNumber(target.radius)}</dd>
+        <dt>${t(this.locale, 'field.completed')}</dt><dd>${t(this.locale, target.is_reached ? 'value.yes' : 'value.no')}</dd>
         <dt>${t(this.locale, 'field.movementMode')}</dt><dd>${translateDataValue(this.locale, target.movement_mode || '-')}</dd>
         <dt>${t(this.locale, 'field.trackingStatus')}</dt><dd>${translateDataValue(this.locale, target.tracking_status || '-')}</dd>
-        <dt>${t(this.locale, 'field.pathPoints')}</dt><dd>${target.moving_path?.length ?? target.vertices?.length ?? '-'}</dd>
         <dt>${t(this.locale, 'field.velocity')}</dt><dd>${target.velocity ? this.formatPosition(target.velocity) : '-'}</dd>
-        <dt>${t(this.locale, 'field.taskStatus')}</dt><dd>${visualState?.label || '-'}</dd>
-        <dt>${t(this.locale, 'field.coveragePoints')}</dt><dd>${coverage.points}</dd>
-        <dt>${t(this.locale, 'field.coverageProgress')}</dt><dd>${coverage.progressPercentage === null ? '-' : `${coverage.progressPercentage}%`}</dd>
-        <dt>${t(this.locale, 'field.charge')}</dt><dd>${target.charge_amount ?? '-'}</dd>
+        <dt>${t(this.locale, 'field.pathPoints')}</dt><dd>${target.moving_path?.length ?? 0}</dd>
+        <dt>${t(this.locale, 'field.coverageProgress')}</dt><dd>${coverage?.progressPercentage !== null && coverage?.progressPercentage !== undefined ? `${coverage.progressPercentage}%` : '-'}</dd>
+        <dt>${t(this.locale, 'field.taskStatus')}</dt><dd>${visual ? translateDataValue(this.locale, visual.label) : '-'}</dd>
+        <dt>${t(this.locale, 'field.charge')}</dt><dd>${this.formatMaybeNumber(target.charge_amount)}</dd>
+        <dt>${t(this.locale, 'field.vertices')}</dt><dd>${this.formatVertices(target.vertices)}</dd>
+        <dt>${t(this.locale, 'field.area')}</dt><dd>${this.formatArea(target.area)}</dd>
+        <dt>${t(this.locale, 'field.description')}</dt><dd>${translateDataValue(this.locale, target.description || '-')}</dd>
       </dl>
     `;
   }
 
   private renderObstacle(obstacle: ObstacleState): void {
-    const geometryRows = [
-      ['point', 'circle'].includes(obstacle.type) ? `<dt>${t(this.locale, 'field.radius')}</dt><dd>${obstacle.radius ?? '-'}</dd>` : '',
-      obstacle.type === 'ellipse' ? `<dt>${t(this.locale, 'field.size')}</dt><dd>${obstacle.width ?? '-'} x ${obstacle.length ?? '-'}</dd>` : '',
-      obstacle.type === 'polygon' ? `<dt>${t(this.locale, 'field.polygonVertices')}</dt><dd class="detail-list">${this.formatVertices(obstacle.vertices)}</dd>` : ''
-    ].join('');
+    const geometryRows = obstacle.type === 'ellipse'
+      ? `
+        <dt>${t(this.locale, 'field.width')}</dt><dd>${this.formatMaybeNumber(obstacle.width)}</dd>
+        <dt>${t(this.locale, 'field.length')}</dt><dd>${this.formatMaybeNumber(obstacle.length)}</dd>
+      `
+      : `<dt>${t(this.locale, 'field.radius')}</dt><dd>${this.formatMaybeNumber(obstacle.radius)}</dd>`;
     this.selectionTitle.textContent = `${t(this.locale, 'entity.obstacle')} · ${obstacle.name}`;
     this.selectionDetails.innerHTML = `
       <dl>
         <dt>${t(this.locale, 'field.id')}</dt><dd>${obstacle.id}</dd>
-        <dt>${t(this.locale, 'field.name')}</dt><dd>${obstacle.name}</dd>
+        <dt>${t(this.locale, 'field.name')}</dt><dd>${translateDataValue(this.locale, obstacle.name)}</dd>
         <dt>${t(this.locale, 'field.type')}</dt><dd>${translateDataValue(this.locale, obstacle.type)}</dd>
-        <dt>${t(this.locale, 'field.height')}</dt><dd>${obstacle.height === 0 ? t(this.locale, 'value.notFlyable') : `${obstacle.height ?? 0}m`}</dd>
         <dt>${t(this.locale, 'field.position')}</dt><dd>${this.formatPosition(obstacle.position)}</dd>
+        <dt>${t(this.locale, 'field.height')}</dt><dd>${obstacle.height === 0 ? t(this.locale, 'value.notFlyable') : this.formatMaybeNumber(obstacle.height)}</dd>
         ${geometryRows}
+        <dt>${t(this.locale, 'field.vertices')}</dt><dd>${this.formatVertices(obstacle.vertices)}</dd>
         <dt>${t(this.locale, 'field.area')}</dt><dd>${this.formatArea(obstacle.area)}</dd>
         <dt>${t(this.locale, 'field.description')}</dt><dd>${translateDataValue(this.locale, obstacle.description || '-')}</dd>
       </dl>
@@ -725,198 +451,17 @@ export class ViewerUI {
     return String(Math.round(area * 100) / 100);
   }
 
-  private updateCommandAvailability(drone: DroneState | null): void {
-    const availability = getCommandAvailability(drone);
-    this.cmdTakeoff.disabled = !availability.takeoff;
-    this.cmdLand.disabled = !availability.land;
-    this.cmdHover.disabled = !availability.hover;
-    this.cmdReturnHome.disabled = !availability.returnHome;
-    this.cmdCharge.disabled = !availability.charge;
-    this.cmdEmergency.disabled = !availability.emergency;
-    this.cmdUpdatePerceivedRadius.disabled = !drone;
-    this.perceivedRadiusInput.disabled = !drone;
-    this.cmdMoveMode.disabled = !availability.moveMode;
-    this.relForward.disabled = !availability.relativeMove;
-    this.relBackward.disabled = !availability.relativeMove;
-    this.relLeft.disabled = !availability.relativeMove;
-    this.relRight.disabled = !availability.relativeMove;
-    this.relUp.disabled = !availability.altitudeMove;
-    this.relDown.disabled = !availability.altitudeMove;
-  }
-
-  private bindNumericEditorInput(
-    input: HTMLInputElement,
-    makePatch: (value: number | undefined) => EntityPatch,
-    handler: EditorHandler
-  ): void {
-    input.addEventListener('input', () => {
-      const value = input.value === '' ? undefined : Number(input.value);
-      handler({ type: 'patch', patch: makePatch(Number.isFinite(value) ? value : undefined) });
-    });
-  }
-
-  private renderEditorForm(): void {
-    const entity = this.getSelectedEditableEntity();
-    const hasSelection = Boolean(entity);
-    const enabled = this.editMode && hasSelection;
-    this.editForm.classList.toggle('hidden', !enabled);
-
-    this.addDrone.disabled = !this.editMode;
-    this.addTarget.disabled = !this.editMode;
-    this.addObstacle.disabled = !this.editMode;
-    this.editMoveSelected.disabled = !enabled;
-    this.cycleSelection.disabled = !enabled;
-    this.snapToGridToggle.disabled = !this.editMode;
-    this.duplicateSelected.disabled = !enabled;
-    this.deleteSelected.disabled = !enabled;
-    this.saveSceneEdits.disabled = !this.editMode || !this.editDirty;
-    this.saveSceneAs.disabled = !this.editMode;
-    this.discardSceneEdits.disabled = !this.editMode;
-
-    for (const field of [
-      this.editName,
-      this.editModel,
-      this.editType,
-      this.editStatus,
-      this.editMovementMode,
-      this.editX,
-      this.editY,
-      this.editZ,
-      this.editRadius,
-      this.editHeading,
-      this.editBattery,
-      this.editMaxSpeed,
-      this.editMaxAltitude,
-      this.editBatteryCapacity,
-      this.editPerceivedRadius,
-      this.editTaskRadius,
-      this.editWidth,
-      this.editLength,
-      this.editMovingDuration,
-      this.editChargeAmount,
-      this.editVelocityX,
-      this.editVelocityY,
-      this.editVelocityZ,
-      this.editMovingPath,
-      this.editVertices,
-      this.editHeight,
-      this.editDescription
-    ]) {
-      field.disabled = !enabled;
-    }
-
-    if (!this.editMode) {
-      this.editorStatus.textContent = t(this.locale, 'editor.off');
-      this.editorStatus.className = 'command-status';
-      return;
-    }
-    if (!entity) {
-      if (!this.editDirty) {
-        this.editorStatus.textContent = t(this.locale, 'editor.selectToEdit');
-        this.editorStatus.className = 'command-status';
-      }
-      return;
-    }
-
-    this.updateFieldVisibility(entity);
-    this.populateSelects();
-    this.editName.value = entity.name || '';
-    this.editModel.value = 'model' in entity ? entity.model || '' : '';
-    this.editType.value = 'type' in entity ? entity.type || '' : '';
-    this.editStatus.value = 'status' in entity ? entity.status || '' : '';
-    this.editMovementMode.value = 'movement_mode' in entity ? entity.movement_mode || 'velocity' : 'velocity';
-    this.editX.value = this.formatInputNumber(entity.position.x);
-    this.editY.value = this.formatInputNumber(entity.position.y);
-    this.editZ.value = this.formatInputNumber(entity.position.z);
-    this.editRadius.value = this.formatInputNumber('radius' in entity ? entity.radius : undefined);
-    this.editHeading.value = this.formatInputNumber('heading' in entity ? entity.heading : undefined);
-    this.editBattery.value = this.formatInputNumber('battery_level' in entity ? entity.battery_level : undefined);
-    this.editMaxSpeed.value = this.formatInputNumber('max_speed' in entity ? entity.max_speed : undefined);
-    this.editMaxAltitude.value = this.formatInputNumber('max_altitude' in entity ? entity.max_altitude : undefined);
-    this.editBatteryCapacity.value = this.formatInputNumber('battery_capacity' in entity ? entity.battery_capacity : undefined);
-    this.editPerceivedRadius.value = this.formatInputNumber('perceived_radius' in entity ? entity.perceived_radius : undefined);
-    this.editTaskRadius.value = this.formatInputNumber('task_radius' in entity ? entity.task_radius : undefined);
-    this.editWidth.value = this.formatInputNumber('width' in entity ? entity.width : undefined);
-    this.editLength.value = this.formatInputNumber('length' in entity ? entity.length : undefined);
-    this.editMovingDuration.value = this.formatInputNumber('moving_duration' in entity ? entity.moving_duration : undefined);
-    this.editChargeAmount.value = this.formatInputNumber('charge_amount' in entity ? entity.charge_amount : undefined);
-    this.editVelocityX.value = this.formatInputNumber('velocity' in entity ? entity.velocity?.x : undefined);
-    this.editVelocityY.value = this.formatInputNumber('velocity' in entity ? entity.velocity?.y : undefined);
-    this.editVelocityZ.value = this.formatInputNumber('velocity' in entity ? entity.velocity?.z : undefined);
-    this.editMovingPath.value = formatMovingPathText('moving_path' in entity ? entity.moving_path : undefined);
-    this.editVertices.value = formatVerticesText('vertices' in entity ? entity.vertices : undefined);
-    this.editHeight.value = this.formatInputNumber('height' in entity ? entity.height : undefined);
-    this.editDescription.value = 'description' in entity ? translateDataValue(this.locale, entity.description || '') : '';
-    if (!this.editDirty) {
-      this.editorStatus.textContent = t(this.locale, 'editor.ready');
-      this.editorStatus.className = 'command-status ok';
-    }
-  }
-
-  private getSelectedEditableEntity(): DroneState | TargetState | ObstacleState | null {
-    if (!this.state || !this.selection) return null;
-    if (this.selection.kind === 'drone') {
-      return this.state.drones.find((drone) => drone.id === this.selection?.id) || null;
-    }
-    if (this.selection.kind === 'target') {
-      return this.state.targets.find((target) => target.id === this.selection?.id) || null;
-    }
-    return this.state.obstacles.find((obstacle) => obstacle.id === this.selection?.id) || null;
-  }
-
-  private formatInputNumber(value: number | undefined): string {
-    return value === undefined || Number.isNaN(value) ? '' : String(Number(value.toFixed(2)));
-  }
-
-  private updateFieldVisibility(entity: DroneState | TargetState | ObstacleState): void {
-    const isDrone = this.selection?.kind === 'drone';
-    const isTarget = this.selection?.kind === 'target';
-    const isObstacle = this.selection?.kind === 'obstacle';
-    const entityType = 'type' in entity ? entity.type : '';
-    const movementMode = 'movement_mode' in entity ? entity.movement_mode || 'velocity' : 'velocity';
-    const isPolygon = entityType === 'polygon';
-    const isMovingTarget = isTarget && entityType === 'moving';
-
-    this.setInputVisible(this.editModel, isDrone);
-    this.setInputVisible(this.editStatus, isDrone);
-    this.setGroupVisible('drone-motion', isDrone);
-    this.setGroupVisible('drone-spec', isDrone);
-    this.setInputVisible(this.editType, isTarget || isObstacle);
-    this.setInputVisible(this.editDescription, isTarget || isObstacle);
-    this.setInputVisible(this.editX, !isPolygon);
-    this.setInputVisible(this.editY, !isPolygon);
-    this.setInputVisible(this.editZ, isDrone || (isTarget && ['fixed', 'moving'].includes(entityType)));
-    this.setInputVisible(this.editRadius, isTarget ? entityType !== 'polygon' : isObstacle && ['point', 'circle'].includes(entityType));
-    this.setInputVisible(this.editWidth, isObstacle && entityType === 'ellipse');
-    this.setInputVisible(this.editLength, isObstacle && entityType === 'ellipse');
-    this.setInputVisible(this.editHeight, isObstacle);
-    this.setGroupVisible('target-motion', isTarget && (entityType === 'moving' || entityType === 'waypoint'));
-    this.setGroupVisible('target-motion-mode', isMovingTarget);
-    this.setInputVisible(this.editMovingDuration, isMovingTarget);
-    this.setInputVisible(this.editChargeAmount, isTarget && entityType === 'waypoint');
-    this.setGroupVisible('target-velocity', isMovingTarget && movementMode === 'velocity');
-    this.setGroupVisible('target-path', isMovingTarget && movementMode === 'path');
-    this.setGroupVisible('polygon-vertices', (isTarget || isObstacle) && isPolygon);
-  }
-
-  private setInputVisible(input: HTMLElement, visible: boolean): void {
-    const label = input.closest('label');
-    if (label) label.classList.toggle('hidden', !visible);
-  }
-
-  private setGroupVisible(group: string, visible: boolean): void {
-    document.querySelectorAll<HTMLElement>(`[data-edit-field="${group}"]`).forEach((item) => {
-      item.classList.toggle('hidden', !visible);
-    });
-  }
-
   private formatPosition(position: Position): string {
     return `x=${position.x.toFixed(1)}, y=${position.y.toFixed(1)}, z=${position.z.toFixed(1)}`;
   }
 
+  private formatMaybeNumber(value: number | undefined, suffix = ''): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+    return `${Math.round(value * 100) / 100}${suffix}`;
+  }
+
   private applyLocale(): void {
     document.documentElement.lang = this.locale;
-    this.populateSelects();
     this.appTitle.textContent = t(this.locale, 'app.title');
     this.languageToggle.textContent = t(this.locale, 'language.toggle');
     this.cameraTop.textContent = t(this.locale, 'camera.top');
@@ -942,10 +487,6 @@ export class ViewerUI {
     this.setTitle('#closeCheatSheet', t(this.locale, 'cheat.close'));
     this.screenshotButton.textContent = t(this.locale, 'screenshot.capture');
     this.screenshotFormat.title = t(this.locale, 'screenshot.format');
-    this.displayCoverageMode.title = t(this.locale, 'backend.coverageDisplay');
-    this.setOptionText('#displayCoverageMode', 'surface', t(this.locale, 'backend.coverageSurface'));
-    this.setOptionText('#displayCoverageMode', 'points', t(this.locale, 'backend.coveragePoints'));
-    this.setOptionText('#displayCoverageMode', 'both', t(this.locale, 'backend.coverageBoth'));
     this.setAriaLabel('.nav-overlay', t(this.locale, 'nav.label'));
     this.setTitle('#panUp', t(this.locale, 'nav.panUp'));
     this.setTitle('#panDown', t(this.locale, 'nav.panDown'));
@@ -954,67 +495,6 @@ export class ViewerUI {
     this.setTitle('#resetView', t(this.locale, 'nav.reset'));
     this.setAriaLabel('.zoom-rail', t(this.locale, 'nav.zoomScale'));
     this.setTitle('.zoom-rail', t(this.locale, 'nav.zoomScale'));
-    this.applyBackendToolLocale();
-    this.basicControlTitle.textContent = t(this.locale, 'control.basic');
-    this.altitudeLabel.textContent = t(this.locale, 'control.altitude');
-    this.perceivedRadiusLabel.textContent = t(this.locale, 'control.perceivedRadius');
-    this.cmdTakeoff.textContent = t(this.locale, 'control.takeoff');
-    this.cmdLand.textContent = t(this.locale, 'control.land');
-    this.cmdHover.textContent = t(this.locale, 'control.hover');
-    this.cmdReturnHome.textContent = t(this.locale, 'control.returnHome');
-    this.cmdCharge.textContent = t(this.locale, 'control.charge');
-    this.cmdEmergency.textContent = t(this.locale, 'control.emergency');
-    this.cmdUpdatePerceivedRadius.textContent = t(this.locale, 'control.updatePerceivedRadius');
-    this.cmdMoveMode.textContent = t(this.locale, 'control.moveMode');
-    this.movementTitle.textContent = t(this.locale, 'movement.title');
-    this.moveStepLabel.textContent = t(this.locale, 'movement.step');
-    this.altitudeStepLabel.textContent = t(this.locale, 'movement.altitudeStep');
-    this.relUp.textContent = t(this.locale, 'movement.up');
-    this.relForward.textContent = t(this.locale, 'movement.forward');
-    this.relLeft.textContent = t(this.locale, 'movement.left');
-    this.relRight.textContent = t(this.locale, 'movement.right');
-    this.relBackward.textContent = t(this.locale, 'movement.backward');
-    this.relDown.textContent = t(this.locale, 'movement.down');
-    this.editorTitle.textContent = t(this.locale, 'editor.title');
-    this.editModeToggle.textContent = this.editMode ? t(this.locale, 'editor.toggleOff') : t(this.locale, 'editor.toggleOn');
-    this.addDrone.textContent = t(this.locale, 'editor.addDrone');
-    this.addTarget.textContent = t(this.locale, 'editor.addTarget');
-    this.addObstacle.textContent = t(this.locale, 'editor.addObstacle');
-    this.editMoveSelected.textContent = t(this.locale, 'editor.moveSelected');
-    this.cycleSelection.textContent = t(this.locale, 'editor.selection');
-    this.setSnapToGrid(this.snapToGrid);
-    this.duplicateSelected.textContent = t(this.locale, 'editor.duplicate');
-    this.deleteSelected.textContent = t(this.locale, 'editor.delete');
-    this.saveSceneEdits.textContent = t(this.locale, 'editor.save');
-    this.saveSceneAs.textContent = t(this.locale, 'editor.saveAs');
-    this.discardSceneEdits.textContent = t(this.locale, 'editor.discard');
-    this.setText('#editNameLabel', t(this.locale, 'field.name'));
-    this.setText('#editModelLabel', t(this.locale, 'field.model'));
-    this.setText('#editTypeLabel', t(this.locale, 'field.type'));
-    this.setText('#editStatusLabel', t(this.locale, 'field.status'));
-    this.setText('#editMovementModeLabel', t(this.locale, 'field.movementMode'));
-    this.setText('#editXLabel', 'X');
-    this.setText('#editYLabel', 'Y');
-    this.setText('#editZLabel', 'Z');
-    this.setText('#editRadiusLabel', t(this.locale, 'field.radius'));
-    this.setText('#editHeadingLabel', t(this.locale, 'field.heading'));
-    this.setText('#editBatteryLabel', t(this.locale, 'field.battery'));
-    this.setText('#editMaxSpeedLabel', t(this.locale, 'field.maxSpeed'));
-    this.setText('#editMaxAltitudeLabel', t(this.locale, 'field.maxAltitude'));
-    this.setText('#editBatteryCapacityLabel', t(this.locale, 'field.batteryCapacity'));
-    this.setText('#editPerceivedRadiusLabel', t(this.locale, 'field.perceivedRadius'));
-    this.setText('#editTaskRadiusLabel', t(this.locale, 'field.taskRadius'));
-    this.setText('#editWidthLabel', t(this.locale, 'field.width'));
-    this.setText('#editLengthLabel', t(this.locale, 'field.length'));
-    this.setText('#editMovingDurationLabel', t(this.locale, 'field.movingDuration'));
-    this.setText('#editChargeAmountLabel', t(this.locale, 'field.charge'));
-    this.setText('#editVelocityXLabel', t(this.locale, 'field.velocityX'));
-    this.setText('#editVelocityYLabel', t(this.locale, 'field.velocityY'));
-    this.setText('#editVelocityZLabel', t(this.locale, 'field.velocityZ'));
-    this.setText('#editMovingPathLabel', t(this.locale, 'field.movingPath'));
-    this.setText('#editVerticesLabel', t(this.locale, 'field.polygonVertices'));
-    this.setText('#editHeightLabel', t(this.locale, 'field.height'));
-    this.setText('#editDescriptionLabel', t(this.locale, 'field.description'));
     this.setLive(this.live);
     this.trailLengthText.textContent = t(this.locale, 'footer.trailLength');
     this.droneScaleText.textContent = t(this.locale, 'footer.droneScale');
@@ -1035,8 +515,6 @@ export class ViewerUI {
     if (!this.state) {
       this.selectionTitle.textContent = t(this.locale, 'selection.none.title');
       this.selectionDetails.textContent = t(this.locale, 'selection.none.detail');
-      this.commandStatus.textContent = t(this.locale, 'control.selectDrone');
-      this.editorStatus.textContent = t(this.locale, 'editor.off');
       this.statusSummary.textContent = formatStatusSummary(null, this.locale);
       this.clickPosition.textContent = formatClickPosition(null, this.locale);
     }
@@ -1057,157 +535,99 @@ export class ViewerUI {
     if (element) element.setAttribute('aria-label', value);
   }
 
-  private setPlaceholder(selector: string, value: string): void {
-    const element = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
-    if (element) element.placeholder = value;
-  }
-
-  private setOptionText(selectSelector: string, value: string, text: string): void {
-    const option = document.querySelector<HTMLOptionElement>(`${selectSelector} option[value="${value}"]`);
-    if (option) option.textContent = text;
-  }
-
-  private setInitialToolOutput(selector: string, text: string): void {
-    const element = document.querySelector<HTMLPreElement>(selector);
-    if (element && !element.classList.contains('ok') && !element.classList.contains('error')) {
-      element.textContent = text;
+  private resolveSelectionActivity(selection: SelectionRef): { kind: string; name: string; id: string } | null {
+    if (!this.state) return null;
+    if (selection.kind === 'drone') {
+      const drone = this.state.drones.find((item) => item.id === selection.id);
+      return drone ? { kind: t(this.locale, 'entity.drone'), name: translateDataValue(this.locale, drone.name), id: drone.id } : null;
     }
-  }
-
-  private applyBackendToolLocale(): void {
-    this.setText('#backendToolsTitle', t(this.locale, 'backend.title'));
-    this.setText('#sessionToolRefresh', t(this.locale, 'backend.refreshSessions'));
-    this.setText('#sessionToolSwitch', t(this.locale, 'backend.switch'));
-    this.setText('#sessionToolReset', t(this.locale, 'backend.resetCurrent'));
-    this.setText('#sessionToolExport', t(this.locale, 'backend.exportJson'));
-    this.setText('#sessionToolDelete', t(this.locale, 'backend.deleteSession'));
-    this.setText('#backendScreenshotButton', t(this.locale, 'backend.screenshot'));
-    this.setText('#taskToolRefresh', t(this.locale, 'task.refresh'));
-    this.setText('#taskToolNext', t(this.locale, 'task.next'));
-    this.setText('#taskToolInspect', t(this.locale, 'task.inspect'));
-    this.setText('#taskToolCheck', t(this.locale, 'task.check'));
-    this.setText('#taskToolDone', t(this.locale, 'task.markDone'));
-    this.setText('#taskToolPending', t(this.locale, 'task.markPending'));
-    this.setText('#checkToolRun', t(this.locale, 'task.runCheck'));
-    this.setText('#advancedCommandRun', t(this.locale, 'advanced.send'));
-    this.setPlaceholder('#taskSinceTimestamp', t(this.locale, 'task.sincePlaceholder'));
-    this.setPlaceholder('#advancedCommandDroneId', t(this.locale, 'advanced.droneIdPlaceholder'));
-    this.setOptionText('#coverageDisplayMode', 'surface', t(this.locale, 'backend.coverageSurface'));
-    this.setOptionText('#coverageDisplayMode', 'points', t(this.locale, 'backend.coveragePoints'));
-    this.setOptionText('#coverageDisplayMode', 'both', t(this.locale, 'backend.coverageBoth'));
-    this.setInitialToolOutput('#sessionToolStatus', t(this.locale, 'backend.initialStatus'));
-    this.setInitialToolOutput('#taskToolStatus', t(this.locale, 'task.initialStatus'));
-    this.setInitialToolOutput('#advancedCommandStatus', t(this.locale, 'advanced.initialStatus'));
-
-    const labels: Array<[string, string]> = [
-      ['#coverageDisplayMode', 'backend.coverageDisplay'],
-      ['#sessionToolSelect', 'backend.currentSession'],
-      ['#backendScreenshotFormat', 'screenshot.format'],
-      ['#backendScreenshotSize', 'backend.size'],
-      ['#backendScreenshotShowStatus', 'backend.includeStatus'],
-      ['#taskToolSelect', 'task.current'],
-      ['#taskSinceTimestamp', 'task.sinceTimestamp'],
-      ['#checkToolEndpoint', 'task.checkEndpoint'],
-      ['#checkToolParams', 'task.checkParams'],
-      ['#advancedCommandDroneId', 'advanced.droneId'],
-      ['#advancedCommandName', 'advanced.command'],
-      ['#advancedCommandParams', 'advanced.params']
-    ];
-    for (const [inputSelector, key] of labels) {
-      const label = document.querySelector<HTMLElement>(inputSelector)?.closest('label')?.querySelector('span');
-      if (label) label.textContent = t(this.locale, key);
+    if (selection.kind === 'target') {
+      const target = this.state.targets.find((item) => item.id === selection.id);
+      return target ? { kind: t(this.locale, 'entity.target'), name: translateDataValue(this.locale, target.name), id: target.id } : null;
     }
-
-    const cardTitles: Array<[string, string]> = [
-      ['#backendToolsTitle', 'backend.title'],
-      ['#taskToolsTitle', 'task.title'],
-      ['#advancedCommandTitle', 'advanced.title']
-    ];
-    for (const [selector, key] of cardTitles) this.setText(selector, t(this.locale, key));
+    const obstacle = this.state.obstacles.find((item) => item.id === selection.id);
+    return obstacle ? { kind: t(this.locale, 'entity.obstacle'), name: translateDataValue(this.locale, obstacle.name), id: obstacle.id } : null;
   }
 
-  private populateSelects(): void {
-    this.populateSelect(this.editStatus, droneStatuses);
-    this.populateSelect(this.editMovementMode, movementModes);
-    const currentTypeOptions = this.selection?.kind === 'obstacle' ? obstacleTypes : targetTypes;
-    this.populateSelect(this.editType, currentTypeOptions);
+  private setActivityText(text: string): void {
+    this.lastActivityStatus = text;
+    this.activityStatus.textContent = text;
+    this.activityStatus.classList.toggle('hidden', !text);
   }
 
-  private populateSelect(select: HTMLSelectElement, values: string[]): void {
-    const previous = select.value;
-    select.innerHTML = '';
-    values.forEach((value) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = translateDataValue(this.locale, value);
-      select.appendChild(option);
-    });
-    if (values.includes(previous)) select.value = previous;
+  private getMiniMapSize(): MiniMapSize {
+    const rect = this.miniMapCanvas.getBoundingClientRect();
+    return {
+      width: Math.max(1, Math.round(rect.width || this.miniMapCanvas.clientWidth || 220)),
+      height: Math.max(1, Math.round(rect.height || this.miniMapCanvas.clientHeight || 160)),
+      padding: 10
+    };
   }
 
-  private getMiniMapSize(): { width: number; height: number; padding: number } {
-    return { width: this.miniMapCanvas.width, height: this.miniMapCanvas.height, padding: 10 };
-  }
-
-  private formatHexColor(color: number): string {
-    return `#${color.toString(16).padStart(6, '0')}`;
+  private prepareMiniMapCanvas(ctx: CanvasRenderingContext2D): MiniMapSize {
+    const size = this.getMiniMapSize();
+    const backingSize = resolveMiniMapBackingSize(size, window.devicePixelRatio);
+    if (this.miniMapCanvas.width !== backingSize.width || this.miniMapCanvas.height !== backingSize.height) {
+      this.miniMapCanvas.width = backingSize.width;
+      this.miniMapCanvas.height = backingSize.height;
+    }
+    ctx.setTransform(backingSize.pixelRatio, 0, 0, backingSize.pixelRatio, 0, 0);
+    return size;
   }
 
   private drawMiniMapObject(
     ctx: CanvasRenderingContext2D,
-    position: Position,
+    origin: Position,
     shape: MiniMapObjectShape,
     bounds: ReturnType<typeof resolveMiniMapBounds>,
-    size: ReturnType<ViewerUI['getMiniMapSize']>,
+    size: MiniMapSize,
     color: string,
-    selected = false
+    selected: boolean
   ): void {
+    ctx.save();
     ctx.fillStyle = color;
-    ctx.globalAlpha = 0.78;
-    ctx.beginPath();
+    ctx.strokeStyle = selected ? MINI_MAP_SELECTED_DRONE_COLOR : color;
+    ctx.lineWidth = selected ? 2 : 1;
 
-    if (shape.kind === 'polygon') {
-      const points = shape.vertices.map((vertex) => worldToMiniMap(vertex, bounds, size));
-      if (points.length >= 3) {
-        ctx.moveTo(points[0].x, points[0].y);
-        points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-        ctx.closePath();
-      } else {
-        this.addMiniMapCirclePath(ctx, position, shape.fallbackRadius, bounds, size);
-      }
-    } else if (shape.kind === 'ellipse') {
-      const point = worldToMiniMap(position, bounds, size);
-      const radiusXPoint = worldToMiniMap({ x: position.x + shape.radiusX, y: position.y, z: position.z }, bounds, size);
-      const radiusYPoint = worldToMiniMap({ x: position.x, y: position.y + shape.radiusY, z: position.z }, bounds, size);
-      const pixelRadiusX = Math.max(2, Math.abs(radiusXPoint.x - point.x));
-      const pixelRadiusY = Math.max(2, Math.abs(radiusYPoint.y - point.y));
-      ctx.ellipse(point.x, point.y, pixelRadiusX, pixelRadiusY, 0, 0, Math.PI * 2);
+    if (shape.kind === 'polygon' && shape.vertices.length >= 3) {
+      ctx.beginPath();
+      shape.vertices.forEach((vertex, index) => {
+        const point = worldToMiniMap(vertex, bounds, size);
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.closePath();
+      ctx.globalAlpha = 0.45;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    let radiusX: number;
+    let radiusY: number;
+    if (shape.kind === 'ellipse') {
+      radiusX = shape.radiusX;
+      radiusY = shape.radiusY;
     } else {
-      this.addMiniMapCirclePath(ctx, position, shape.radius, bounds, size);
+      const radius = shape.kind === 'polygon' ? shape.fallbackRadius : shape.radius;
+      radiusX = radius;
+      radiusY = radius;
     }
-
+    const center = worldToMiniMap(origin, bounds, size);
+    const rx = Math.max(3, Math.abs(worldToMiniMap({ x: origin.x + radiusX, y: origin.y, z: origin.z }, bounds, size).x - center.x));
+    const ry = Math.max(3, Math.abs(worldToMiniMap({ x: origin.x, y: origin.y + radiusY, z: origin.z }, bounds, size).y - center.y));
+    ctx.beginPath();
+    ctx.ellipse(center.x, center.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.45;
     ctx.fill();
-    if (selected) {
-      ctx.strokeStyle = '#f97316';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
     ctx.globalAlpha = 1;
+    ctx.stroke();
+    ctx.restore();
   }
 
-  private addMiniMapCirclePath(
-    ctx: CanvasRenderingContext2D,
-    position: Position,
-    radius: number,
-    bounds: ReturnType<typeof resolveMiniMapBounds>,
-    size: ReturnType<ViewerUI['getMiniMapSize']>
-  ): void {
-    const point = worldToMiniMap(position, bounds, size);
-    const radiusPoint = worldToMiniMap({ x: position.x + radius, y: position.y, z: position.z }, bounds, size);
-    const pixelRadius = Math.max(2, Math.abs(radiusPoint.x - point.x));
-    ctx.arc(point.x, point.y, pixelRadius, 0, Math.PI * 2);
+  private formatHexColor(color: number): string {
+    return `#${color.toString(16).padStart(6, '0')}`;
   }
 }

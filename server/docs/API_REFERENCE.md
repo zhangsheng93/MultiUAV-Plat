@@ -25,7 +25,7 @@ The API uses role-based access control with four roles:
 
 **Header:** `X-API-Key: <your-key>`
 
-If no API key is provided, the server defaults to AGENT. USER, SYSTEM, and ADMIN each accept multiple hard-coded privilege keys; the actual values are stored in the software and omitted from documentation.
+If no API key is provided, the server defaults to AGENT. USER, SYSTEM, and ADMIN each accept multiple hard-coded privilege keys; the SYSTEM set can include a dedicated 3D View client key from `MULTIUAV_3D_VIEW_SYSTEM_KEY`. The actual values are stored in the software and omitted from documentation.
 
 See [AUTHENTICATION.md](AUTHENTICATION.md) for details.
 
@@ -1784,6 +1784,7 @@ Complete session data with flat structure. Extends SessionResponse with entity a
   - `width`: `integer` (optional) — image width in pixels (default: `1024`)
   - `height`: `integer` (optional) — image height in pixels (default: `768`)
   - `show_status`: `boolean` (optional) — include UI-equivalent path traces, area coverage, reached/tracked target state, and status bar details (default: `false`)
+  - `show_label`: `boolean` (optional) — include object labels for drones, targets, and obstacles (default: `true`)
 - Response: Binary content with media type `image/png`, `image/jpeg`, `application/pdf`, `image/svg+xml`, or `application/postscript` based on `format`.
 
 #### GET /sessions/{session_id}/screenshot
@@ -1794,6 +1795,7 @@ Complete session data with flat structure. Extends SessionResponse with entity a
   - `width`: `integer` (optional) — image width in pixels (default: `1024`)
   - `height`: `integer` (optional) — image height in pixels (default: `768`)
   - `show_status`: `boolean` (optional) — include UI-equivalent path traces, area coverage, reached/tracked target state, and status bar details (default: `false`)
+  - `show_label`: `boolean` (optional) — include object labels for drones, targets, and obstacles (default: `true`)
 - Response: Binary content with media type `image/png`, `image/jpeg`, `application/pdf`, `image/svg+xml`, or `application/postscript` based on `format`.
 
 #### POST /sessions/current/reset

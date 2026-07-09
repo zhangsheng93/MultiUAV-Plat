@@ -376,10 +376,17 @@ class APIServer:
         width: int = 1024,
         height: int = 768,
         show_status: bool = False,
+        show_label: bool = True,
         show_error: bool = True
     ):
         endpoint = "/sessions/current/screenshot"
-        params = {"format": fmt, "width": width, "height": height, "show_status": str(bool(show_status)).lower()}
+        params = {
+            "format": fmt,
+            "width": width,
+            "height": height,
+            "show_status": str(bool(show_status)).lower(),
+            "show_label": str(bool(show_label)).lower(),
+        }
         return self.make_request('GET', endpoint, params=params, expect_json=False, show_error=show_error)
 
     def api_get_session_task(self, session_id: str, task_id: str):

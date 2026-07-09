@@ -394,7 +394,7 @@ API_CATEGORIES = {
             "endpoint": "/sessions/current/screenshot",
             "method": "GET",
             "description": "Export active session screenshot",
-            "parameters": ["format", "width", "height", "center_x", "center_y", "scale_px_per_meter", "show_status"]
+            "parameters": ["format", "width", "height", "center_x", "center_y", "scale_px_per_meter", "show_status", "show_label"]
         },
         {
             "endpoint": "/sessions/current/reset",
@@ -429,7 +429,7 @@ API_CATEGORIES = {
             "endpoint": "/sessions/{session_id}/screenshot",
             "method": "GET",
             "description": "Export session screenshot",
-            "parameters": ["session_id", "format", "width", "height", "center_x", "center_y", "scale_px_per_meter", "show_status"]
+            "parameters": ["session_id", "format", "width", "height", "center_x", "center_y", "scale_px_per_meter", "show_status", "show_label"]
         },
         {
             "endpoint": "/sessions/{id}/set-current",

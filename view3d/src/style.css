@@ -67,15 +67,6 @@ button.active {
   color: white;
 }
 
-button.danger {
-  border-color: #fecaca;
-  color: #991b1b;
-}
-
-button.danger:not(:disabled):hover {
-  border-color: #ef4444;
-}
-
 #app {
   height: 100vh;
   display: block;
@@ -127,32 +118,6 @@ button.danger:not(:disabled):hover {
 
 .topbar-actions select {
   max-width: 148px;
-}
-
-.topbar-actions #displayCoverageMode {
-  width: 168px;
-  max-width: 168px;
-  padding-left: 8px;
-  padding-right: 26px;
-  font-size: 13px;
-}
-
-.topbar-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.topbar-check input {
-  margin: 0;
 }
 
 .cheat-sheet {
@@ -485,204 +450,6 @@ dd {
   white-space: normal;
 }
 
-.control-card {
-  margin-top: 14px;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-}
-
-.side-panel .control-card {
-  display: none;
-}
-
-.control-card h3 {
-  margin: 0 0 10px;
-  font-size: 15px;
-}
-
-.control-card label {
-  display: grid;
-  gap: 6px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.control-card input[type="number"] {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px;
-}
-
-.control-card input[type="text"],
-.control-card textarea,
-.control-card select {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px;
-  resize: vertical;
-}
-
-.compact-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.button-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.button-grid .wide {
-  grid-column: 1 / -1;
-}
-
-.wide-button {
-  width: 100%;
-  margin-top: 10px;
-}
-
-.backend-tools-card {
-  display: grid;
-  gap: 10px;
-}
-
-.backend-tools-card .button-grid {
-  margin-top: 0;
-}
-
-.inline-check {
-  display: flex !important;
-  grid-template-columns: none !important;
-  align-items: center;
-  gap: 8px !important;
-}
-
-.inline-check input {
-  width: auto;
-}
-
-.tool-output {
-  min-height: 72px;
-  max-height: 180px;
-  overflow: auto;
-  margin: 0;
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.tool-output.ok {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-  color: #14532d;
-}
-
-.tool-output.error {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #7f1d1d;
-}
-
-.movement-pad {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.movement-pad button {
-  min-height: 34px;
-}
-
-#relUp {
-  grid-column: 1;
-}
-
-#relForward {
-  grid-column: 2;
-}
-
-#relLeft {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-#relRight {
-  grid-column: 3;
-  grid-row: 2;
-}
-
-#relBackward {
-  grid-column: 2;
-  grid-row: 3;
-}
-
-#relDown {
-  grid-column: 3;
-  grid-row: 3;
-}
-
-.command-status {
-  min-height: 36px;
-  margin: 12px 0 0;
-  color: #475569;
-  font-size: 13px;
-}
-
-.command-status.ok {
-  color: #166534;
-}
-
-.command-status.error {
-  color: #991b1b;
-}
-
-.card-heading-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.card-heading-row h3 {
-  margin: 0;
-}
-
-.editor-actions,
-.editor-save-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.edit-form {
-  display: grid;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.edit-form.hidden {
-  display: none;
-}
-
-.edit-form .hidden {
-  display: none;
-}
-
 .timeline {
   position: absolute;
   left: 14px;
@@ -811,8 +578,7 @@ dd {
   }
 
   .topbar-actions button,
-  .topbar-actions select,
-  .topbar-check {
+  .topbar-actions select {
     flex: 0 0 auto;
     height: 32px;
     padding: 5px 8px;
@@ -821,14 +587,6 @@ dd {
 
   .topbar-actions select {
     max-width: 146px;
-  }
-
-  .topbar-actions #displayCoverageMode {
-    width: 164px;
-    max-width: 164px;
-    padding-left: 7px;
-    padding-right: 24px;
-    font-size: 13px;
   }
 
   .cheat-sheet {
@@ -841,12 +599,6 @@ dd {
   .shortcut-row {
     grid-template-columns: 104px minmax(0, 1fr);
     gap: 10px;
-  }
-
-  .topbar-check span {
-    max-width: 132px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .map-overlay {

@@ -9,17 +9,12 @@ export type TargetVisualState = {
 };
 
 export type CoverageSummary = {
-  points: number;
   progressPercentage: number | null;
 };
 
 export type CoverageSurface = {
   outer: Position[];
   holes?: Position[][];
-};
-
-type CoveragePayload = {
-  covered_points?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -45,22 +40,6 @@ function normalizePoint(value: unknown): Position | null {
     return { x, y, z: asFiniteNumber(value.z) ?? 0 };
   }
   return null;
-}
-
-function getCoverageMap(state: ViewerState): Record<string, CoveragePayload> {
-  const extendedState = state as ViewerState & {
-    history?: { area_coverage?: Record<string, CoveragePayload> };
-    area_coverage?: Record<string, CoveragePayload>;
-  };
-  return extendedState.history?.area_coverage || extendedState.area_coverage || {};
-}
-
-export function normalizeCoveragePoints(state: ViewerState, targetId: string): Position[] {
-  const payload = getCoverageMap(state)[targetId];
-  if (!payload || !Array.isArray(payload.covered_points)) return [];
-  return payload.covered_points
-    .map(normalizePoint)
-    .filter((point): point is Position => Boolean(point));
 }
 
 function normalizeRing(value: unknown): Position[] {
@@ -89,7 +68,6 @@ export function summarizeCoverage(state: ViewerState, targetId: string): Coverag
   const progress = state.task_progress || {};
   const surfacePayload = state.area_coverage_surfaces?.[targetId];
   return {
-    points: normalizeCoveragePoints(state, targetId).length,
     progressPercentage: typeof surfacePayload?.progress_percentage === 'number'
       ? Math.round(surfacePayload.progress_percentage)
       : typeof progress.progress_percentage === 'number' ? Math.round(progress.progress_percentage) : null
@@ -119,13 +97,11 @@ export function getTargetVisualState(target: TargetState, state: ViewerState, lo
   const hasCoverageSurface = Boolean(state.area_coverage_surfaces?.[target.id]);
   if ((isAreaTask && isAreaTarget) || hasCoverageSurface) {
     const summary = summarizeCoverage(state, target.id);
-    const suffix = summary.progressPercentage === null
-      ? (locale === 'zh-CN' ? `${summary.points}点` : `${summary.points} pts`)
-      : `${summary.progressPercentage}%`;
+    const suffix = summary.progressPercentage === null ? '' : ` ${summary.progressPercentage}%`;
     if (summary.progressPercentage !== null && summary.progressPercentage >= 100) {
-      return { color: 0x22c55e, label: `${locale === 'zh-CN' ? '覆盖' : 'Coverage'} ${suffix}`, emphasis: 'complete' };
+      return { color: 0x22c55e, label: `${locale === 'zh-CN' ? '覆盖' : 'Coverage'}${suffix}`, emphasis: 'complete' };
     }
-    return { color: 0xfacc15, label: `${locale === 'zh-CN' ? '覆盖' : 'Coverage'} ${suffix}`, emphasis: 'coverage' };
+    return { color: 0xfacc15, label: `${locale === 'zh-CN' ? '覆盖' : 'Coverage'}${suffix}`, emphasis: 'coverage' };
   }
 
   if (target.is_reached) {

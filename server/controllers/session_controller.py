@@ -629,7 +629,7 @@ class SessionController:
     
 
 
-    def generate_session_screenshot(self, session_id: Optional[str] = None, fmt: str = "png", width: int = 1024, height: int = 768, center_x: Optional[float] = None, center_y: Optional[float] = None, scale_px_per_meter: Optional[float] = None, show_status: bool = False) -> Optional[bytes]:
+    def generate_session_screenshot(self, session_id: Optional[str] = None, fmt: str = "png", width: int = 1024, height: int = 768, center_x: Optional[float] = None, center_y: Optional[float] = None, scale_px_per_meter: Optional[float] = None, show_status: bool = False, show_label: bool = True) -> Optional[bytes]:
         """Render a static image of the current session UI to PNG/JPG/PDF/SVG/EPS bytes,
         updated to mirror ui/interface.py visuals (colors, shapes, outlines, labels).
 
@@ -642,6 +642,7 @@ class SessionController:
             center_y: Optional override for canvas center Y (meters)
             scale_px_per_meter: Optional override for canvas scale (pixels per meter)
             show_status: Whether to include UI-equivalent path/coverage/status overlays
+            show_label: Whether to include object labels for drones, targets, and obstacles
 
         Returns:
             Bytes of the encoded image or None if no session
@@ -668,6 +669,7 @@ class SessionController:
             center_y=center_y,
             scale_px_per_meter=scale_px_per_meter,
             show_status=show_status,
+            show_label=show_label,
         )
 
     # ==================== Task Management Methods ====================

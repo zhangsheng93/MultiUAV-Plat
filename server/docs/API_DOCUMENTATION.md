@@ -81,7 +81,7 @@ curl -H "X-API-Key: <SYSTEM_API_KEY>" http://localhost:8000/sessions
 **API Keys:**
 - AGENT: `<AGENT_API_KEY>`
 - USER: one of the hard-coded USER privilege keys
-- SYSTEM: one of the hard-coded SYSTEM privilege keys
+- SYSTEM: one of the hard-coded SYSTEM privilege keys, plus an optional dedicated 3D View client key from `MULTIUAV_3D_VIEW_SYSTEM_KEY`
 - ADMIN: one of the hard-coded ADMIN privilege keys
 
 The actual key values are stored in the software and are intentionally omitted from the documentation.
@@ -1167,6 +1167,7 @@ Provides rendered screenshots of the current session UI in PNG, JPG, PDF, SVG, o
   - `center_y` (float, optional): Canvas center Y coordinate in meters.
   - `scale_px_per_meter` (float, optional): Canvas scale in pixels per meter.
   - `show_status` (boolean, optional): When `true`, includes drone path traces, area-search coverage overlays, reached/tracked target state, and the status bar metadata shown by the UI. Defaults to `false`.
+  - `show_label` (boolean, optional): When `false`, hides object labels for drones, targets, and obstacles. Defaults to `true`.
 - Response: Binary image/vector content. Media type is `image/png`, `image/jpeg`, `application/pdf`, `image/svg+xml`, or `application/postscript` depending on `format`.
 
 Example requests:
@@ -1188,6 +1189,10 @@ curl -X GET "http://localhost:8000/sessions/current/screenshot?format=pdf" \
 curl -X GET "http://localhost:8000/sessions/current/screenshot?format=svg&show_status=true" \
   --output current_session.svg
 
+# SVG without object labels
+curl -X GET "http://localhost:8000/sessions/current/screenshot?format=svg&show_label=false" \
+  --output current_session_no_labels.svg
+
 # EPS with status overlays
 curl -X GET "http://localhost:8000/sessions/current/screenshot?format=eps&show_status=true" \
   --output current_session.eps
@@ -1207,6 +1212,7 @@ curl -X GET "http://localhost:8000/sessions/current/screenshot?format=eps&show_s
   - `center_y` (float, optional): Canvas center Y coordinate in meters.
   - `scale_px_per_meter` (float, optional): Canvas scale in pixels per meter.
   - `show_status` (boolean, optional): When `true`, includes drone path traces, area-search coverage overlays, reached/tracked target state, and the status bar metadata shown by the UI. Defaults to `false`.
+  - `show_label` (boolean, optional): When `false`, hides object labels for drones, targets, and obstacles. Defaults to `true`.
 - Response: Binary image/vector content. Media type is `image/png`, `image/jpeg`, `application/pdf`, `image/svg+xml`, or `application/postscript` depending on `format`.
 
 Example request:
@@ -1217,6 +1223,9 @@ curl -X GET "http://localhost:8000/sessions/session-123e4567-e89b-12d3-a456-4266
 
 curl -X GET "http://localhost:8000/sessions/session-123e4567-e89b-12d3-a456-426614174000/screenshot?format=svg&show_status=true" \
   --output session_123e4567.svg
+
+curl -X GET "http://localhost:8000/sessions/session-123e4567-e89b-12d3-a456-426614174000/screenshot?format=svg&show_label=false" \
+  --output session_123e4567_no_labels.svg
 ```
 
 ### Session Tracking
