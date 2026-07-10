@@ -1,11 +1,7 @@
-"""Privilege keys for API authentication.
+"""Hard-coded privilege keys for API authentication.
 
 Do not copy these values into public documentation or logs.
-The optional 3D View SYSTEM key is loaded from the environment so public
-release archives do not contain a dedicated viewer secret.
 """
-
-import os
 
 USER_PRIVILEGE_KEYS = (
     "usr_9d22f5f1f0b048629716f218b43f872a",
@@ -13,13 +9,12 @@ USER_PRIVILEGE_KEYS = (
     "usr_61f7d70d4d3343cfb69c9726d9d3af79",
 )
 
-SYSTEM_3D_VIEW_PRIVILEGE_KEY = os.getenv("MULTIUAV_3D_VIEW_SYSTEM_KEY", "").strip()
-
 SYSTEM_PRIVILEGE_KEYS = (
     "sys_2a60548366f74d5b80a073a9503a7bb4",
     "sys_d89cb06d8a644d9bbd5419dc9558bf76",
     "sys_3d23b754ca4b442c97c2b93ac775a30f",
-) + ((SYSTEM_3D_VIEW_PRIVILEGE_KEY,) if SYSTEM_3D_VIEW_PRIVILEGE_KEY else ())
+    "sys_3dview_a5c94aba652535edd837d59b6d33aff9",
+)
 
 ADMIN_PRIVILEGE_KEYS = (
     "admin_key_for_the_controller_only_12",
