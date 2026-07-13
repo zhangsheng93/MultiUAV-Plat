@@ -24,7 +24,7 @@ The software accepts one AGENT key and multiple hard-coded privilege keys for US
 |:---|:---|
 | **AGENT** | `<AGENT_API_KEY>` |
 | **USER** | 3+ hard-coded USER privilege keys |
-| **SYSTEM** | 3+ hard-coded SYSTEM privilege keys |
+| **SYSTEM** | 4+ hard-coded SYSTEM privilege keys, including a dedicated 3D View client key |
 | **ADMIN** | 3+ hard-coded ADMIN privilege keys |
 
 ### User Roles

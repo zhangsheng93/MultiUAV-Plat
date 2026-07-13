@@ -25,7 +25,7 @@ The API uses role-based access control with four roles:
 
 **Header:** `X-API-Key: <your-key>`
 
-If no API key is provided, the server defaults to AGENT. USER, SYSTEM, and ADMIN each accept multiple hard-coded privilege keys; the SYSTEM set can include a dedicated 3D View client key from `MULTIUAV_3D_VIEW_SYSTEM_KEY`. The actual values are stored in the software and omitted from documentation.
+If no API key is provided, the server defaults to AGENT. USER, SYSTEM, and ADMIN each accept multiple hard-coded privilege keys; the SYSTEM set includes a dedicated 3D View client key. The actual values are stored in the software and omitted from documentation.
 
 See [AUTHENTICATION.md](AUTHENTICATION.md) for details.
 

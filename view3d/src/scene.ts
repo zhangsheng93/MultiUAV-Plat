@@ -17,7 +17,14 @@ import {
 import { getObstacleBaseColor, getObstacleMaterialSettings, getObstacleVisualHeight, getPolygonObstaclePlacement } from './obstacleVisuals';
 import { getSceneCameraFarPlane, getSceneGroundDimensions, getTopViewCameraDistance, resolveSceneBounds, type SceneGroundDimensions } from './sceneBounds.ts';
 import { DEFAULT_VISUAL_SCALE_SETTINGS, getAdaptiveBillboardScale, getAdaptiveDroneScale, type VisualScaleSettings } from './renderSettings.ts';
-import { buildSelectionPolygonPoints, getLabelTextureMetrics, getTargetSelectionVisualKind, getUniformLabelBaseScale } from './selectionVisuals.ts';
+import {
+  buildSelectionEllipsePoints,
+  buildSelectionPolygonPoints,
+  getLabelTextureMetrics,
+  getObstacleSelectionVisualKind,
+  getTargetSelectionVisualKind,
+  getUniformLabelBaseScale
+} from './selectionVisuals.ts';
 import {
   buildRasterEps,
   buildRasterPdf,
@@ -100,6 +107,7 @@ const SCENE_CLEAR_COLOR = 0xd7e7f5;
 const GROUND_EDGE_BUFFER = 1.2;
 const MIN_ZOOM_SCALE = 0.4;
 const MAX_ZOOM_SCALE = 5;
+const OBSTACLE_SELECTION_HIGHLIGHT_Y = 1.25;
 const DRONE_SHADOW_Y = COVERAGE_SURFACE_Y + 0.08;
 const DRONE_ROTOR_OFFSET = 10;
 const DRONE_ARM_LENGTH = 28;
@@ -1570,7 +1578,7 @@ export class ViewerScene {
 
     this.selectionHighlight = shapeHighlight || makeCircularSelectionHighlight(
       radius,
-      this.selected.kind === 'drone' ? Math.max(2.8, worldCenter.y + 3.2) : 1.25,
+      this.selected.kind === 'drone' ? Math.max(2.8, worldCenter.y + 3.2) : OBSTACLE_SELECTION_HIGHLIGHT_Y,
       worldCenter,
       this.selected.kind === 'drone' ? 0.44 : 0.28
     );
@@ -1592,11 +1600,21 @@ export class ViewerScene {
     }
     if (this.selected.kind === 'obstacle') {
       const obstacle = this.state.obstacles.find((item) => item.id === this.selected?.id);
-      if (!obstacle || obstacle.type !== 'polygon' || !obstacle.vertices || obstacle.vertices.length < 3) return null;
+      if (!obstacle) return null;
+      if (getObstacleSelectionVisualKind(obstacle) === 'ellipse') {
+        const points = buildSelectionEllipsePoints(obstacle.width, obstacle.length)
+          .map((point) => new THREE.Vector3(
+            obstacle.position.x + point.x * this.visualScaleSettings.obstacle,
+            OBSTACLE_SELECTION_HIGHLIGHT_Y,
+            worldYToSceneZ(obstacle.position.y + point.y * this.visualScaleSettings.obstacle)
+          ));
+        return makeSelectionLine(points);
+      }
+      if (getObstacleSelectionVisualKind(obstacle) !== 'polygon' || !obstacle.vertices) return null;
       const points = buildSelectionPolygonPoints(obstacle.vertices, obstacle.position)
         .map((point) => new THREE.Vector3(
           obstacle.position.x + point.x * this.visualScaleSettings.obstacle,
-          getObstacleVisualHeight(obstacle.height) * this.visualScaleSettings.obstacle + 1.5,
+          OBSTACLE_SELECTION_HIGHLIGHT_Y,
           worldYToSceneZ(obstacle.position.y + point.y * this.visualScaleSettings.obstacle)
         ));
       return makeSelectionLine(points);

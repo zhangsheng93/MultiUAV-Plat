@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "VITE_VIEWER_DATA_SOURCE=backend vite --host 127.0.0.1 --port 5173",
-    "dev:demo": "VITE_VIEWER_DATA_SOURCE=demo vite --host 127.0.0.1 --port 5173",
-    "dev:backend": "VITE_VIEWER_DATA_SOURCE=backend vite --host 127.0.0.1 --port 5173",
+    "dev": "cross-env VITE_VIEWER_DATA_SOURCE=backend vite --host 127.0.0.1 --port 5173",
+    "dev:demo": "cross-env VITE_VIEWER_DATA_SOURCE=demo vite --host 127.0.0.1 --port 5173",
+    "dev:backend": "cross-env VITE_VIEWER_DATA_SOURCE=backend vite --host 127.0.0.1 --port 5173",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1"
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/three": "^0.184.1",
+    "cross-env": "^7.0.3",
     "typescript": "^5.4.5",
     "vite": "^5.2.12"
   }

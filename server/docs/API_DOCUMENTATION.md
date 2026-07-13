@@ -81,7 +81,7 @@ curl -H "X-API-Key: <SYSTEM_API_KEY>" http://localhost:8000/sessions
 **API Keys:**
 - AGENT: `<AGENT_API_KEY>`
 - USER: one of the hard-coded USER privilege keys
-- SYSTEM: one of the hard-coded SYSTEM privilege keys, plus an optional dedicated 3D View client key from `MULTIUAV_3D_VIEW_SYSTEM_KEY`
+- SYSTEM: one of the hard-coded SYSTEM privilege keys, including the dedicated 3D View client key
 - ADMIN: one of the hard-coded ADMIN privilege keys
 
 The actual key values are stored in the software and are intentionally omitted from the documentation.

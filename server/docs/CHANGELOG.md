@@ -7,7 +7,6 @@ All notable changes to this project should be documented in this file.
 ### Added
 - Added an About button to the UI toolbar with version, copyright, license, clickable paper/project/website links, and click-outside dismissal.
 - Added a `show_label` screenshot option to hide drone, target, and obstacle labels while preserving other screenshot content.
-- Added optional `MULTIUAV_3D_VIEW_SYSTEM_KEY` support for a dedicated 3D View SYSTEM client key without storing that key in release source.
 - Added UI details-panel vertex coordinate rows for selected polygon targets and obstacles; polygon target details now omit radius and label vertices with the target name.
 - Added yellow mini-map selection highlighting for selected drones, targets, and obstacles.
 
