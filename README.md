@@ -68,17 +68,19 @@ Start the server first, then start the controller.
 
 | System | Package | How to run |
 | --- | --- | --- |
-| Windows | `MultiUAV-Plat-v0.40_Windows.zip` | Double-click `MultiUAV-Plat.Server.v0.40.exe`, then double-click `MultiUAV-Plat.Controller.v0.40.exe`. |
-| macOS | `MultiUAV-Plat-v0.40_Mac.zip` | Double-click the executables, or run them from Terminal with `./MultiUAV-Plat.Server.v0.40` and `./MultiUAV-Plat.Controller.v0.40`. |
+| Windows | `MultiUAV-Plat-v0.41_Windows.zip` | Double-click `MultiUAV-Plat.Server.v0.41.exe`, then double-click `MultiUAV-Plat.Controller.v0.41.exe`. |
+| macOS | `MultiUAV-Plat-v0.41_Mac.zip` | Double-click the executables, or run them from Terminal with `./MultiUAV-Plat.Server.v0.41` and `./MultiUAV-Plat.Controller.v0.41`. |
 | Linux | Linux release package | Run the server and controller executables from a shell, following the same server-first order. |
 
 For macOS/Linux shell execution, you may need to add executable permission first:
 
 ```bash
-chmod +x MultiUAV-Plat.Server.v0.40 MultiUAV-Plat.Controller.v0.40
-./MultiUAV-Plat.Server.v0.40
-./MultiUAV-Plat.Controller.v0.40
+chmod +x MultiUAV-Plat.Server.v0.41 MultiUAV-Plat.Controller.v0.41
+./MultiUAV-Plat.Server.v0.41
+./MultiUAV-Plat.Controller.v0.41
 ```
+
+On macOS, if the system reports that the app cannot be opened because it is from an unidentified developer, open **System Settings > Privacy & Security**, find the blocked MultiUAV-Plat app, and choose **Open Anyway**. You can then confirm the prompt to launch it.
 
 The source-code workflow below is recommended for development, customization, and reproducing experiments from the repository.
 

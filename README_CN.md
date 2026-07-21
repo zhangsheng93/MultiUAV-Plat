@@ -68,17 +68,19 @@ tutorial/     带截图的分步使用教程
 
 | 系统 | Release 包 | 运行方式 |
 | --- | --- | --- |
-| Windows | `MultiUAV-Plat-v0.40_Windows.zip` | 双击 `MultiUAV-Plat.Server.v0.40.exe`，再双击 `MultiUAV-Plat.Controller.v0.40.exe`。 |
-| macOS | `MultiUAV-Plat-v0.40_Mac.zip` | 可以双击可执行文件，也可以在终端中运行 `./MultiUAV-Plat.Server.v0.40` 和 `./MultiUAV-Plat.Controller.v0.40`。 |
+| Windows | `MultiUAV-Plat-v0.41_Windows.zip` | 双击 `MultiUAV-Plat.Server.v0.41.exe`，再双击 `MultiUAV-Plat.Controller.v0.41.exe`。 |
+| macOS | `MultiUAV-Plat-v0.41_Mac.zip` | 可以双击可执行文件，也可以在终端中运行 `./MultiUAV-Plat.Server.v0.41` 和 `./MultiUAV-Plat.Controller.v0.41`。 |
 | Linux | Linux release package | 在 shell 中运行 server 和 controller 可执行文件，同样按照先 server、后 controller 的顺序启动。 |
 
 macOS/Linux 通过终端运行时，可能需要先添加可执行权限：
 
 ```bash
-chmod +x MultiUAV-Plat.Server.v0.40 MultiUAV-Plat.Controller.v0.40
-./MultiUAV-Plat.Server.v0.40
-./MultiUAV-Plat.Controller.v0.40
+chmod +x MultiUAV-Plat.Server.v0.41 MultiUAV-Plat.Controller.v0.41
+./MultiUAV-Plat.Server.v0.41
+./MultiUAV-Plat.Controller.v0.41
 ```
+
+在 macOS 上，如果系统提示该程序来自未识别开发者或未授权，无法直接打开，请进入 **系统设置 > 隐私与安全性**，在安全性提示中找到被拦截的 MultiUAV-Plat 程序并选择 **仍要打开 / Open Anyway**，然后在弹出的确认窗口中继续打开。
 
 下面的源码 Quick Start 更适合开发、定制和复现实验。
 
